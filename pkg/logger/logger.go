@@ -16,3 +16,12 @@ func InitLogger() {
 	})
 	Log.SetLevel(logrus.InfoLevel)
 }
+
+func Debug(args ...interface{}) {
+	if Log != nil && Log.Level <= logrus.DebugLevel {
+		Log.Debug(args...)
+	}
+}
+
+
+

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"api_techstore/internal/cache"
+	"api_techstore/internal/database"
 	jwtpkg "api_techstore/pkg/jwt"
 	"api_techstore/pkg/response"
 
@@ -38,6 +40,21 @@ func JWTAuthMiddleware(config *jwtpkg.JWTConfig) gin.HandlerFunc {
 				message = "Token has expired"
 			}
 			response.ErrorResponse(ctx, http.StatusUnauthorized, message)
+			ctx.Abort()
+			return
+		}
+
+		// Check if token exists in Redis
+		redisConn, err := database.InitRedis()
+		if err != nil {
+			response.ErrorResponse(ctx, http.StatusInternalServerError, "Failed to connect to Redis")
+			ctx.Abort()
+			return
+		}
+		redisClient := cache.NewRedisClient(redisConn)
+		isValid, err := redisClient.IsValidToken(ctx.Request.Context(), claims.AccessUUID)
+		if err != nil || !isValid {
+			response.ErrorResponse(ctx, http.StatusUnauthorized, "Token has been revoked or is invalid")
 			ctx.Abort()
 			return
 		}
