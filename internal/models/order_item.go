@@ -7,7 +7,7 @@ type OrderItem struct {
     Quantity  int     `gorm:"column:quantity;not null" json:"quantity"`
     UnitPrice float64 `gorm:"column:unit_price;type:numeric(10,2);not null" json:"unit_price"`
 
-    // // Quan hệ
-    // Order   Order   `gorm:"foreignKey:OrderID" json:"order,omitempty"`
-    // Product Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
+    // Relations
+	Order   Order   `json:"order,omitempty" gorm:"foreignKey:OrderID"`
+	Product Product `json:"product,omitempty" gorm:"foreignKey:ProductID"`
 }

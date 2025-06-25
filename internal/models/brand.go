@@ -1,24 +1,26 @@
 package models
 
-type CreateBrandReq struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
-	IsActive	bool   `json:"is_active" binding:"omitempty" default:"false"`
-	Slug		string `json:"slug" binding:"required"`
-}
-
-type UpdateBrandReq struct {
-	Name        string `json:"name" binding:"omitempty"`
-	Description string `json:"description"`
-	IsActive	bool   `json:"is_active" binding:"omitempty" default:"false"`
-	Slug		string `json:"slug" binding:"omitempty"`
-}
-
 type Brand struct {
 	Base
 	Name        string `json:"name" gorm:"column:name"`
 	Description string `json:"description" gorm:"column:description"`
-	// Image string
 	IsActive    bool   `json:"is_active" gorm:"column:is_active" default:"false"`
 	Slug        string `json:"slug" gorm:"column:slug"`
+
+	// Relations
+	Products []Product `json:"products,omitempty" gorm:"foreignKey:BrandID"`
+}
+
+type BrandCreateRequest struct {
+	Name        string `json:"name" binding:"required,min=2,max=100"`
+	Description string `json:"description" binding:"omitempty,max=255"`
+	IsActive    *bool  `json:"is_active" binding:"omitempty"`
+	Slug        string `json:"slug" binding:"required,min=2,max=100"`
+}
+
+type BrandUpdateRequest struct {
+	Name        string `json:"name" binding:"omitempty,min=2,max=100"`
+	Description string `json:"description" binding:"omitempty,max=255"`
+	IsActive    *bool  `json:"is_active" binding:"omitempty"`
+	Slug        string `json:"slug" binding:"omitempty,min=2,max=100"`
 }

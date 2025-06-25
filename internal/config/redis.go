@@ -5,14 +5,12 @@ import (
 	"strconv"
 )
 
-// RedisConfig holds the configuration for Redis
 type RedisConfig struct {
 	Addr     string
 	Password string
 	DB       int
 }
 
-// load environment variables 
 func GetRedisConfig() RedisConfig {
 	return RedisConfig{
 		Addr:     os.Getenv("REDIS_ADDRESS"),
@@ -21,7 +19,6 @@ func GetRedisConfig() RedisConfig {
 	}
 }
 
-// getRedisDB retrieves the Redis DB number from environment variables or defaults to 0
 func getRedisDB() int {
 	db := os.Getenv("REDIS_DB")
 	if db == "" {

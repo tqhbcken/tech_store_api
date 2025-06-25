@@ -1,81 +1,77 @@
 package services
 
 import (
-	"api_techstore/internal/database"
 	"api_techstore/internal/models"
+
+	"gorm.io/gorm"
 )
 
-func GetAllOrders() ([]models.Order, error) {
-	
-	db, err := database.InitDB()
-	if err != nil {
-		return nil, err
-	}
+type OrderService interface {
+	GetAllOrders() ([]models.Order, error)
+	GetOrderByID(id string) (models.Order, error)
+	CreateOrder(order models.Order) (models.Order, error)
+	UpdateOrder(id string, order models.Order) (models.Order, error)
+	DeleteOrder(id string) error
+	GetOrdersByUserID(userID string) ([]models.Order, error)
+}
 
+type orderService struct {
+	db *gorm.DB
+}
+
+func NewOrderService(db *gorm.DB) OrderService {
+	return &orderService{db: db}
+}
+
+func (s *orderService) GetAllOrders() ([]models.Order, error) {
 	var orders []models.Order
-	if err := db.DB.Find(&orders).Error; err != nil {
+	if err := s.db.Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
 }
 
-func GetOrderByID(id string) (models.Order, error) {
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Order{}, err
-	}
-
+func (s *orderService) GetOrderByID(id string) (models.Order, error) {
 	var order models.Order
-	if err := db.DB.First(&order, id).Error; err != nil {
+	if err := s.db.First(&order, "id = ?", id).Error; err != nil {
 		return models.Order{}, err
 	}
 	return order, nil
 }
 
-func CreateOrder(order models.Order) (models.Order, error) {
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Order{}, err
-	}
-
-	if err := db.DB.Create(&order).Error; err != nil {
+func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
+	if err := s.db.Create(&order).Error; err != nil {
 		return models.Order{}, err
 	}
 	return order, nil
 }
 
-func UpdateOrder(id string, order models.Order) (models.Order, error) {
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Order{}, err
-	}
-
+func (s *orderService) UpdateOrder(id string, order models.Order) (models.Order, error) {
 	var existingOrder models.Order
-	if err := db.DB.First(&existingOrder, id).Error; err != nil {
+	if err := s.db.First(&existingOrder, "id = ?", id).Error; err != nil {
 		return models.Order{}, err
 	}
-
-	order.OrderID = existingOrder.OrderID // Ensure the ID remains the same
-	if err := db.DB.Save(&order).Error; err != nil {
+	if err := s.db.Save(&order).Error; err != nil {
 		return models.Order{}, err
 	}
 	return order, nil
 }
 
-func DeleteOrder(id string) error {
-	db, err := database.InitDB()
-	if err != nil {
-		return err
-	}
-
+func (s *orderService) DeleteOrder(id string) error {
 	var order models.Order
-	if err := db.DB.First(&order, id).Error; err != nil {
+	if err := s.db.First(&order, "id = ?", id).Error; err != nil {
 		return err
 	}
-
-	if err := db.DB.Delete(&order).Error; err != nil {
+	if err := s.db.Delete(&order).Error; err != nil {
 		return err
 	}
 	return nil
-}	
+}
 
+func (s *orderService) GetOrdersByUserID(userID string) ([]models.Order, error) {
+	var orders []models.Order
+	if err := s.db.Where("user_id = ?", userID).Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
+}

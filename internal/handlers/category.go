@@ -1,89 +1,69 @@
 package handlers
 
 import (
+	"api_techstore/internal/container"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
-	"api_techstore/internal/services"
 	"api_techstore/pkg/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllCategories(c *gin.Context) {
-	//goi toi service
-	categories, err := services.GetAllCategories()
+func GetAllCategories(c *gin.Context, ctn *container.Container) {
+	categories, err := ctn.CategoryService.GetAllCategories()
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	response.SuccessResponse(c, http.StatusOK, "Categories retrieved successfully", categories)
 }
 
-func GetCategoryById(c *gin.Context) {
+func GetCategoryById(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-
-	//goi toi service
-	category, err := services.GetCategoryById(id)
+	category, err := ctn.CategoryService.GetCategoryById(id)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	response.SuccessResponse(c, http.StatusOK, "Category retrieved successfully", category)
 }
 
-func CreateCategory(c *gin.Context) {
-	//lay data tu body
-	var category models.CategoryReq
-	if err := c.ShouldBindJSON(&category); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
-	}
-
-	// Chuyen CategoryReq sang Category
+func CreateCategory(c *gin.Context, ctn *container.Container) {
+	req := middlewares.GetValidatedModel(c).(*models.CategoryCreateRequest)
 	categoryModel := models.Category{
-		Name: category.Name,
-		Slug: category.Slug,
+		Name: req.Name,
+		Slug: req.Slug,
 	}
-
-	//goi toi service
-	newCategory, err := services.CreateCategory(categoryModel)
+	newCategory, err := ctn.CategoryService.CreateCategory(categoryModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	response.SuccessResponse(c, http.StatusCreated, "Category created successfully", newCategory)
 }
 
-func UpdateCategory(c *gin.Context) {
+func UpdateCategory(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-	var category models.Category
-	if err := c.ShouldBindJSON(&category); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
+	req := middlewares.GetValidatedModel(c).(*models.CategoryUpdateRequest)
+	categoryModel := models.Category{
+		Name: req.Name,
+		Slug: req.Slug,
 	}
-
-	//goi toi service
-	updatedCategory, err := services.UpdateCategory(id, category)
+	updatedCategory, err := ctn.CategoryService.UpdateCategory(id, categoryModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	response.SuccessResponse(c, http.StatusOK, "Category updated successfully", updatedCategory)
 }
 
-func DeleteCategory(c *gin.Context) {
+func DeleteCategory(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-
-	//goi toi service
-	err := services.DeleteCategory(id)
+	err := ctn.CategoryService.DeleteCategory(id)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	response.SuccessResponse(c, http.StatusNoContent, "Category deleted successfully", nil)
 }

@@ -1,0 +1,13 @@
+--- +migrate up
+CREATE TABLE IF NOT EXISTS carts (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    user_id INT,
+    session_id VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'active',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+--- -migrate down
+DROP TABLE IF EXISTS carts;

@@ -1,27 +1,20 @@
 package main
 
 import (
-	"api_techstore/internal/database"
+	"api_techstore/internal/container"
 	"api_techstore/internal/models"
 	"api_techstore/internal/routes"
-	"api_techstore/pkg/logger"
 	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-
-	logger.InitLogger()
-
-	// Khởi tạo database
-	dbConn, err := database.InitDB()
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-
-	// Tự động migrate các bảng dựa trên model
-	if err := dbConn.AutoMigrate(
+	// init container
+	ctn := container.NewContainer()
+	
+	// auto migrate
+	if err := ctn.DB.AutoMigrate(
 		&models.User{},
 		&models.Category{},
 		&models.Brand{},
@@ -32,9 +25,10 @@ func main() {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	// init router
 	r := gin.Default()
-	routes.SetupRouter(r)
+	routes.SetupRouter(r, ctn)
 
-	//chay server
+	// run server
 	r.Run(":8080")
 }

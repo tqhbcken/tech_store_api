@@ -2,7 +2,7 @@ package database
 
 import (
 	"api_techstore/internal/config"
-	"fmt"
+	"log"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -18,12 +18,11 @@ func InitRedis() (*redis.Client, error) {
 
 	// Test the connection
 	if err := client.Ping(client.Context()).Err(); err != nil {
-		fmt.Println("Failed to connect to Redis:", err)
+		log.Println("Failed to connect to Redis:", err)
 		return nil, err
 	}
 
-	
-	fmt.Print("Connected to Redis at ", redisConfig.Addr, "\n")
+	log.Println("Connected to Redis at", redisConfig.Addr)
 
 	return client, nil
 }

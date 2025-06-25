@@ -1,90 +1,56 @@
 package services
 
 import (
-	"api_techstore/internal/database"
 	"api_techstore/internal/models"
+
+	"gorm.io/gorm"
 )
 
-func GetAllBrands() ([]models.Brand, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return nil, err
-	}
+type BrandService interface {
+	GetAllBrands() ([]models.Brand, error)
+	GetBrandById(id string) (models.Brand, error)
+	CreateBrand(brand models.Brand) (models.Brand, error)
+	UpdateBrand(id string, brand models.Brand) (models.Brand, error)
+	DeleteBrand(id string) error
+}
 
-	//lay danh sach brand
+type brandService struct {
+	db *gorm.DB
+}
+
+func NewBrandService(db *gorm.DB) BrandService {
+	return &brandService{db: db}
+}
+
+func (s *brandService) GetAllBrands() ([]models.Brand, error) {
 	var brands []models.Brand
-	err = db.DB.Find(&brands).Error
-	if err != nil {
-		return nil, err
-	}
-	return brands, nil
+	err := s.db.Find(&brands).Error
+	return brands, err
 }
 
-func GetBrandById(id string) (models.Brand, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Brand{}, err
-	}
-
-	//lay brand theo id
+func (s *brandService) GetBrandById(id string) (models.Brand, error) {
 	var brand models.Brand
-	err = db.DB.First(&brand, id).Error
-	if err != nil {
-		return models.Brand{}, err
-	}
-	return brand, nil
+	err := s.db.First(&brand, "id = ?", id).Error
+	return brand, err
 }
 
-func CreateBrand(brand models.Brand) (models.Brand, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Brand{}, err
-	}
-
-	//them moi brand
-	err = db.DB.Create(&brand).Error
-	if err != nil {
-		return models.Brand{}, err
-	}
-	return brand, nil
+func (s *brandService) CreateBrand(brand models.Brand) (models.Brand, error) {
+	err := s.db.Create(&brand).Error
+	return brand, err
 }
 
-func UpdateBrand(id string, brand models.Brand) (models.Brand, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
+func (s *brandService) UpdateBrand(id string, brand models.Brand) (models.Brand, error) {
+	if err := s.db.Model(&models.Brand{}).Where("id = ?", id).Updates(brand).Error; err != nil {
 		return models.Brand{}, err
 	}
-
-	//cap nhat brand
-	err = db.DB.Model(&models.Brand{}).Where("id = ?", id).Updates(brand).Error
-	if err != nil {
-		return models.Brand{}, err
-	}
-
-	//lay brand da cap nhat
 	var updatedBrand models.Brand
-	err = db.DB.First(&updatedBrand, id).Error
-	if err != nil {
+	if err := s.db.First(&updatedBrand, "id = ?", id).Error; err != nil {
 		return models.Brand{}, err
 	}
 	return updatedBrand, nil
 }
 
-func DeleteBrand(id string) error {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return err
-	}
-
-	//xoa brand theo id
-	err = db.DB.Delete(&models.Brand{}, id).Error
-	if err != nil {
-		return err
-	}
-	return nil
+func (s *brandService) DeleteBrand(id string) error {
+	err := s.db.Delete(&models.Brand{}, "id = ?", id).Error
+	return err
 }

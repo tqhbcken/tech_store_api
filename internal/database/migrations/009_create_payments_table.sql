@@ -1,0 +1,14 @@
+--- +migrate up
+CREATE TABLE IF NOT EXISTS payments (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    order_id INT NOT NULL UNIQUE,
+    amount NUMERIC(10, 2) NOT NULL,
+    method VARCHAR(50) NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+); 
+--- -migrate down
+DROP TABLE IF EXISTS payments;

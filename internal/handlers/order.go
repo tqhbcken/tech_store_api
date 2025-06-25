@@ -1,105 +1,97 @@
 package handlers
 
 import (
+	"api_techstore/internal/container"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
-	"api_techstore/internal/services"
 	"api_techstore/pkg/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllOrders(r *gin.Context) {
-	order, err := services.GetAllOrders()
+func GetAllOrders(c *gin.Context, ctn *container.Container) {
+	orders, err := ctn.OrderService.GetAllOrders()
 	if err != nil {
-		response.ErrorResponse(r, http.StatusInternalServerError, err.Error())
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	response.SuccessResponse(r, http.StatusOK, "Orders retrieved successfully", order)
+	response.SuccessResponse(c, http.StatusOK, "Orders retrieved successfully", orders)
 }
 
-func GetOrderByID(r *gin.Context) {
-	id := r.Param("id")
-	order, err := services.GetOrderByID(id)
+func GetOrderByID(c *gin.Context, ctn *container.Container) {
+	id := c.Param("id")
+	order, err := ctn.OrderService.GetOrderByID(id)
 	if err != nil {
-		response.ErrorResponse(r, http.StatusInternalServerError, err.Error())
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	response.SuccessResponse(r, http.StatusOK, "Order retrieved successfully", order)
+	response.SuccessResponse(c, http.StatusOK, "Order retrieved successfully", order)
 }
 
-func CreateOrder(r *gin.Context) {
-	
-	var order models.CreateOrderReq
-	if err := r.ShouldBindJSON(&order); err != nil {
-		response.ErrorResponse(r, http.StatusBadRequest, "Invalid request body: "+err.Error())
-		return
+func CreateOrder(c *gin.Context, ctn *container.Container) {
+	req := middlewares.GetValidatedModel(c).(*models.OrderCreateRequest)
+	order := models.Order{
+		UserID:      req.UserID,
+		TotalAmount: req.TotalAmount,
+		Status:      req.Status,
 	}
-
-	// Convert CreateOrderReq to Order model
-	createdOrder := models.Order{
-		UserID:      order.UserID,
-		TotalAmount: order.TotalAmount,
-		Status:      order.Status,
-	}
-
-	createdOrder, err := services.CreateOrder(createdOrder)
+	createdOrder, err := ctn.OrderService.CreateOrder(order)
 	if err != nil {
-		response.ErrorResponse(r, http.StatusInternalServerError, err.Error())
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	response.SuccessResponse(r, http.StatusCreated, "Order created successfully", createdOrder)
+	response.SuccessResponse(c, http.StatusCreated, "Order created successfully", createdOrder)
 }
 
-func UpdateOrder(r *gin.Context) {
-	id := r.Param("id")
-	var order models.UpdateOrderReq
-	if err := r.ShouldBindJSON(&order); err != nil {
-		response.ErrorResponse(r, http.StatusBadRequest, "Invalid request body: "+err.Error())
+func UpdateOrder(c *gin.Context, ctn *container.Container) {
+	id := c.Param("id")
+	req := middlewares.GetValidatedModel(c).(*models.OrderUpdateRequest)
+	if !checkOrderExists(ctn, id) {
+		response.ErrorResponse(c, http.StatusNotFound, "Order not found")
 		return
 	}
-
-	// Check if the order exists
-	if !CheckOrderExists(id) {
-		response.ErrorResponse(r, http.StatusNotFound, "Order not found")
-		return
+	order := models.Order{
+		UserID:      req.UserID,
+		TotalAmount: req.TotalAmount,
+		Status:      req.Status,
 	}
-
-	// Convert UpdateOrderReq to Order model
-	orderModel := models.Order{
-		UserID:      order.UserID,
-		TotalAmount: order.TotalAmount,
-		Status:      order.Status,
-	}
-
-	updatedOrder, err := services.UpdateOrder(id, orderModel)
+	updatedOrder, err := ctn.OrderService.UpdateOrder(id, order)
 	if err != nil {
-		response.ErrorResponse(r, http.StatusInternalServerError, err.Error())
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	response.SuccessResponse(r, http.StatusOK, "Order updated successfully", updatedOrder)
+	response.SuccessResponse(c, http.StatusOK, "Order updated successfully", updatedOrder)
 }
 
-func DeleteOrder(r *gin.Context) {
-	id := r.Param("id")
-
-	// Check if the order exists
-	if !CheckOrderExists(id) {
-		response.ErrorResponse(r, http.StatusNotFound, "Order not found")
+func DeleteOrder(c *gin.Context, ctn *container.Container) {
+	id := c.Param("id")
+	if !checkOrderExists(ctn, id) {
+		response.ErrorResponse(c, http.StatusNotFound, "Order not found")
 		return
 	}
-
-	if err := services.DeleteOrder(id); err != nil {
-		response.ErrorResponse(r, http.StatusInternalServerError, err.Error())
+	if err := ctn.OrderService.DeleteOrder(id); err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	response.SuccessResponse(r, http.StatusOK, "Order deleted successfully", nil)
+	response.SuccessResponse(c, http.StatusOK, "Order deleted successfully", nil)
 }
 
-func CheckOrderExists(id string) bool {
-	_, err := services.GetOrderByID(id)
+func GetOrdersByUserID(c *gin.Context, ctn *container.Container) {
+	userID := c.Param("userId")
+	orders, err := ctn.OrderService.GetOrdersByUserID(userID)
 	if err != nil {
-		return false // Order does not exist
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
 	}
-	return true // Order exists
+	if len(orders) == 0 {
+		response.ErrorResponse(c, http.StatusNotFound, "No orders found for this user")
+		return
+	}
+	response.SuccessResponse(c, http.StatusOK, "Orders retrieved successfully", orders)
+}
+
+func checkOrderExists(ctn *container.Container, id string) bool {
+	_, err := ctn.OrderService.GetOrderByID(id)
+	return err == nil
 }

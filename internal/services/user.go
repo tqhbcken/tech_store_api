@@ -1,120 +1,72 @@
 package services
 
 import (
-	"api_techstore/internal/database"
 	"api_techstore/internal/models"
-	"errors"
 	"fmt"
+
+	"gorm.io/gorm"
 )
 
-func GetAllUsers() ([]models.User, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		fmt.Println("DB Init Error:", err)
+type UserService interface {
+	CheckUserExists(id string) (bool, error)
+	GetAllUsers() ([]models.User, error)
+	GetUserById(id string) (models.User, error)
+	CreateUser(user models.User) error
+	UpdateUser(id string, user models.User) error
+	DeleteUser(id string) error
+}
+
+type userService struct {
+	db *gorm.DB
+}
+
+func NewUserService(db *gorm.DB) UserService {
+	return &userService{db: db}
+}
+
+func (s *userService) CheckUserExists(id string) (bool, error) {
+	var exists bool
+	err := s.db.Model(&models.User{}).
+		Select("count(*) > 0").
+		Where("id = ?", id).
+		Find(&exists).
+		Error
+	return exists, err
+}
+
+func (s *userService) GetAllUsers() ([]models.User, error) {
+	var users []models.User
+	if err := s.db.Find(&users).Error; err != nil {
 		return nil, err
 	}
-
-	//tao moi user
-	users := []models.User{}
-	db.DB.Find(&users)
-
-	//neu khong tim thay user thi tra ve mang rong (khong phai loi)
-	if len(users) == 0 {
-		return []models.User{}, nil
-	}
-	//neu tim thay user thi tra ve user
 	return users, nil
 }
 
-func GetUserById(id string) (models.User, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
+func (s *userService) GetUserById(id string) (models.User, error) {
+	var user models.User
+	if err := s.db.First(&user, "id = ?", id).Error; err != nil {
 		return models.User{}, err
 	}
-
-	//tim user theo id
-	var user models.User
-	db.DB.First(&user, id).Where("id = ?", id)
-
-	//neu khong tim thay user thi tra ve loi
-	if user.ID == 0 {
-		return models.User{}, errors.New("user not found")
-	}
-
-	//neu tim thay user thi tra ve user
 	return user, nil
 }
 
-func CreateUser(user models.User) error {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return err
+func (s *userService) CreateUser(user models.User) error {
+	if err := s.db.Create(&user).Error; err != nil {
+		return fmt.Errorf("error creating user: %w", err)
 	}
-
-	// //debug: in ra user trước khi tạo
-	// fmt.Println("Creating user:", user)
-
-	//tao moi user
-	db.DB.Create(&user)
-
-	//neu co loi thi tra ve loi
-	if db.DB.Error != nil {
-		fmt.Println("DB Error:", db.DB.Error)
-		return db.DB.Error
-	}
-
-	//neu khong co loi thi tra ve user
-	if user.ID == 0 {
-		return errors.New("failed to create user")
-	}
-	//neu co loi thi tra ve loi
-	if db.DB.Error != nil {
-		//modify theo response trong pkg
-		return nil
-	}
-	//neu khong co loi thi tra ve user
 	return nil
 }
 
-func UpdateUser(id string, user models.User) error {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return err
+func (s *userService) UpdateUser(id string, user models.User) error {
+	if err := s.db.Model(&models.User{}).Where("id = ?", id).Updates(user).Error; err != nil {
+		return fmt.Errorf("error updating user: %w", err)
 	}
-
-	//update user
-	db.DB.Model(&models.User{}).Where("id = ?", id).Updates(user)
-
-	//neu co loi thi tra ve loi
-	if db.DB.Error != nil {
-		return db.DB.Error
-	}
-
-	//neu khong co loi thi tra ve user
 	return nil
 }
 
-func DeleteUser(id string) error {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return err
+func (s *userService) DeleteUser(id string) error {
+	if err := s.db.Delete(&models.User{}, "id = ?", id).Error; err != nil {
+		return fmt.Errorf("error deleting user: %w", err)
 	}
-
-	//xoa user
-	db.DB.Delete(&models.User{}, id)
-
-	//neu co loi thi tra ve loi
-	if db.DB.Error != nil {
-		return db.DB.Error
-	}
-
-	//neu khong co loi thi tra ve user
 	return nil
 }
-
-

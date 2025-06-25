@@ -1,91 +1,57 @@
 package services
 
 import (
-	"api_techstore/internal/database"
 	"api_techstore/internal/models"
+
+	"gorm.io/gorm"
 )
 
-func GetAllCategories() ([]models.Category, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return nil, err
-	}
+type CategoryService interface {
+	GetAllCategories() ([]models.Category, error)
+	GetCategoryById(id string) (models.Category, error)
+	CreateCategory(category models.Category) (models.Category, error)
+	UpdateCategory(id string, category models.Category) (models.Category, error)
+	DeleteCategory(id string) error
+}
 
-	//lay danh sach category
+type categoryService struct {
+	db *gorm.DB
+}
+
+func NewCategoryService(db *gorm.DB) CategoryService {
+	return &categoryService{db: db}
+}
+
+func (s *categoryService) GetAllCategories() ([]models.Category, error) {
 	var categories []models.Category
-	err = db.DB.Find(&categories).Error
-	if err != nil {
-		return nil, err
-	}
-	return categories, nil
+	err := s.db.Find(&categories).Error
+	return categories, err
 }
 
-func GetCategoryById(id string) (models.Category, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Category{}, err
-	}
-
-	//lay category theo id
+func (s *categoryService) GetCategoryById(id string) (models.Category, error) {
 	var category models.Category
-	err = db.DB.First(&category, id).Error
-	if err != nil {
-		return models.Category{}, err
-	}
-	return category, nil
+	err := s.db.First(&category, "id = ?", id).Error
+	return category, err
 }
 
-func CreateCategory(category models.Category) (models.Category, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return models.Category{}, err
-	}
-
-	//them moi category
-	err = db.DB.Create(&category).Error
-	if err != nil {
-		return models.Category{}, err
-	}
-	return category, nil
+func (s *categoryService) CreateCategory(category models.Category) (models.Category, error) {
+	err := s.db.Create(&category).Error
+	return category, err
 }
 
-func UpdateCategory(id string, category models.Category) (models.Category, error) {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
+func (s *categoryService) UpdateCategory(id string, category models.Category) (models.Category, error) {
+	if err := s.db.Model(&models.Category{}).Where("id = ?", id).Updates(category).Error; err != nil {
 		return models.Category{}, err
 	}
-
-	//cap nhat category theo id
-	err = db.DB.Model(&models.Category{}).Where("id = ?", id).Updates(category).Error
-	if err != nil {
-		return models.Category{}, err
-	}
-
-	//tra ve category da cap nhat
+	// Return the updated category
 	var updatedCategory models.Category
-	err = db.DB.First(&updatedCategory, id).Error
-	if err != nil {
+	if err := s.db.First(&updatedCategory, "id = ?", id).Error; err != nil {
 		return models.Category{}, err
 	}
 	return updatedCategory, nil
 }
 
-func DeleteCategory(id string) error {
-	//open db
-	db, err := database.InitDB()
-	if err != nil {
-		return err
-	}
-
-	//xoa category theo id
-	err = db.DB.Delete(&models.Category{}, id).Error
-	if err != nil {
-		return err
-	}
-	return nil
+func (s *categoryService) DeleteCategory(id string) error {
+	err := s.db.Delete(&models.Category{}, "id = ?", id).Error
+	return err
 }
-

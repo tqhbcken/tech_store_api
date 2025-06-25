@@ -2,41 +2,40 @@ package handlers
 
 import (
 	"api_techstore/internal/cache"
+	"api_techstore/internal/container"
 	"api_techstore/internal/database"
 	"api_techstore/internal/models"
 	"api_techstore/internal/services"
 	"api_techstore/pkg/jwt"
 	"api_techstore/pkg/response"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func Login(c *gin.Context) {
+func Login(c *gin.Context, di *container.Container) {
 	// Lấy dữ liệu từ request body
 	var loginReq models.LoginReq
 	if err := c.ShouldBindJSON(&loginReq); err != nil || loginReq.Email == "" || loginReq.Password == "" {
 		response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body or missing email/password")
 		return
 	}
-	// Kiểm tra email có tồn tại trên hệ thống không
-	users, err := services.GetUserByEmail(loginReq.Email)
-	if err != nil || len(users) == 0 {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Email does not exist")
-		return
-	}
-	user := users[0]
-	// Kiểm tra password so với password đã hash
-	if !services.CheckPasswordHash(loginReq.Password, user.PasswordHash) {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Incorrect password")
-		return
-	}
+	// Kiểm tra người dùng
+	user, err := services.Login(di.DB, loginReq.Email, loginReq.Password)
+	if err != nil {	
+		if err == gorm.ErrRecordNotFound {
+			response.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")	
+			return
+		}
+		response.ErrorResponse(c, http.StatusInternalServerError, "Error checking user credentials: "+err.Error())
+		return	
+	}	
 
 	// Create new JWT Config
-	jwtCfg := jwt.NewJWTConfig()
+	jwtCfg := di.JWTConfig
 
 	// Generate Tokens
 	accessToken, err := jwtCfg.GenerateAccessRedisToken(user.ID, user.Role)
@@ -64,13 +63,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Connect to Redis
-	redisConn, err := database.InitRedis()
-	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to connect to Redis: "+err.Error())
-		return
-	}
-	redisClient := cache.NewRedisClient(redisConn)
+	// Connect to Redis //
+	redisClient := cache.NewRedisClient(di.Redis)
 
 	// Save tokens to Redis
 	err = redisClient.SetToken(c.Request.Context(), accessClaims.AccessUUID, strconv.FormatUint(uint64(user.ID), 10), jwtCfg.AccessTokenDuration)
@@ -80,7 +74,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Debug log
-	fmt.Printf("DEBUG: Saved access UUID: %s for user: %d\n", accessClaims.AccessUUID, user.ID)
+	// fmt.Printf("DEBUG: Saved access UUID: %s for user: %d\n", accessClaims.AccessUUID, user.ID)
 
 	err = redisClient.SetToken(c.Request.Context(), refreshClaims.RefreshUUID, strconv.FormatUint(uint64(user.ID), 10), jwtCfg.RefreshTokenDuration)
 	if err != nil {
@@ -89,7 +83,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Debug log
-	fmt.Printf("DEBUG: Saved refresh UUID: %s for user: %d\n", refreshClaims.RefreshUUID, user.ID)
+	// fmt.Printf("DEBUG: Saved refresh UUID: %s for user: %d\n", refreshClaims.RefreshUUID, user.ID)
 
 	response.SuccessResponse(c, http.StatusOK, "Login successful", gin.H{
 		"user_id":       user.ID,
@@ -99,7 +93,7 @@ func Login(c *gin.Context) {
 	})
 }
 
-func Register(c *gin.Context) {
+func Register(c *gin.Context, di *container.Container) {
 	var userReq models.LoginReq
 	if err := c.ShouldBindJSON(&userReq); err != nil {
 		response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
@@ -111,7 +105,7 @@ func Register(c *gin.Context) {
 		return
 	}
 	// Kiểm tra email đã tồn tại chưa
-	users, err := services.GetUserByEmail(userReq.Email)
+	users, err := services.GetUserByEmail(di.DB, userReq.Email)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, "Error checking email: "+err.Error())
 		return
@@ -123,7 +117,7 @@ func Register(c *gin.Context) {
 
 }
 
-func Logout(c *gin.Context) {
+func Logout(c *gin.Context, di *container.Container) {
 	// Extract access token claims from context
 	accessUUID, ok := c.Get("access_uuid")
 	// fmt.Println("DEBUG: Access UUID from context:", accessUUID)
@@ -142,7 +136,7 @@ func Logout(c *gin.Context) {
 	}
 
 	// Validate refresh token to get its UUID
-	jwtCfg := jwt.NewJWTConfig()
+	jwtCfg := di.JWTConfig
 	refreshClaims, err := jwtCfg.ValidateRefreshRedisToken(req.RefreshToken)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusUnauthorized, "Invalid or expired refresh token")
@@ -150,12 +144,7 @@ func Logout(c *gin.Context) {
 	}
 
 	// Connect to Redis
-	redisConn, err := database.InitRedis()
-	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to connect to Redis: "+err.Error())
-		return
-	}
-	redisClient := cache.NewRedisClient(redisConn)
+	redisClient := cache.NewRedisClient(di.Redis)
 
 	// Delete tokens from Redis
 	_ = redisClient.DeleteToken(c.Request.Context(), accessUUID.(string))

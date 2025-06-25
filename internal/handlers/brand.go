@@ -1,17 +1,17 @@
 package handlers
 
 import (
+	"api_techstore/internal/container"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
-	"api_techstore/internal/services"
 	"api_techstore/pkg/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllBrands(c *gin.Context) {
-	//goi toi service
-	brands, err := services.GetAllBrands()
+func GetAllBrands(c *gin.Context, ctn *container.Container) {
+	brands, err := ctn.BrandService.GetAllBrands()
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -19,49 +19,36 @@ func GetAllBrands(c *gin.Context) {
 	response.SuccessResponse(c, http.StatusOK, "Brands retrieved successfully", brands)
 }
 
-func GetBrandById(c *gin.Context) {
+func GetBrandById(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-
 	if id == "" {
 		response.ErrorResponse(c, http.StatusBadRequest, "Brand ID is required")
 		return
 	}
-
-	idChecker, err := services.GetBrandById(id)
-	if idChecker.ID == 0 || err != nil {
+	// Có thể kiểm tra id là số dương nếu cần
+	brand, err := ctn.BrandService.GetBrandById(id)
+	if err != nil || brand.ID == 0 {
 		response.ErrorResponse(c, http.StatusNotFound, "Brand not found")
 		return
 	}
-
-	//goi toi service
-	brand, err := services.GetBrandById(id)
-	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
 	response.SuccessResponse(c, http.StatusOK, "Brand retrieved successfully", brand)
 }
 
-func CreateBrand(c *gin.Context) {
-	//lay data tu body
-	var brand models.CreateBrandReq
-	// Kiem tra du lieu nhap vao
-	if err := c.ShouldBindJSON(&brand); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input: "+err.Error())
-		return
-	}
+func CreateBrand(c *gin.Context, ctn *container.Container) {
+	// Lấy validated model từ middleware
+	req := middlewares.GetValidatedModel(c).(*models.BrandCreateRequest)
 
-	//chuyen doi brandReq sang brand
 	brandModel := models.Brand{
-		Name:        brand.Name,
-		Description: brand.Description,
-		IsActive:    brand.IsActive,	
-		Slug:        brand.Slug,
+		Name:        req.Name,
+		Description: req.Description,
+		IsActive:    false,
+		Slug:        req.Slug,
+	}
+	if req.IsActive != nil {
+		brandModel.IsActive = *req.IsActive
 	}
 
-	//goi toi service
-	newBrand, err := services.CreateBrand(brandModel)
+	newBrand, err := ctn.BrandService.CreateBrand(brandModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -70,37 +57,31 @@ func CreateBrand(c *gin.Context) {
 	response.SuccessResponse(c, http.StatusCreated, "Brand created successfully", newBrand)
 }
 
-func UpdateBrand(c *gin.Context) {
+func UpdateBrand(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-	var brand models.UpdateBrandReq
-	//lay data tu body
-	if err := c.ShouldBindJSON(&brand); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input: "+err.Error())
-		return
-	}
-
-	//kiem tra id
 	if id == "" {
 		response.ErrorResponse(c, http.StatusBadRequest, "Brand ID is required")
 		return
 	}
 
-	idChecker, err := services.GetBrandById(id)
-	if idChecker.ID == 0 || err != nil {
+	_, err := ctn.BrandService.GetBrandById(id)
+	if err != nil {
 		response.ErrorResponse(c, http.StatusNotFound, "Brand not found")
 		return
 	}
 
-	//chuyen doi BrandReq sang Brand
+	req := middlewares.GetValidatedModel(c).(*models.BrandUpdateRequest)
 	brandModel := models.Brand{
-		Name:        brand.Name,	
-		Description: brand.Description,
-		IsActive:    brand.IsActive,
-		Slug:        brand.Slug,
+		Name:        req.Name,
+		Description: req.Description,
+		IsActive:    false,
+		Slug:        req.Slug,
+	}
+	if req.IsActive != nil {
+		brandModel.IsActive = *req.IsActive
 	}
 
-	//goi toi service
-	updatedBrand, err := services.UpdateBrand(id, brandModel)
+	updatedBrand, err := ctn.BrandService.UpdateBrand(id, brandModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -109,23 +90,21 @@ func UpdateBrand(c *gin.Context) {
 	response.SuccessResponse(c, http.StatusOK, "Brand updated successfully", updatedBrand)
 }
 
-func DeleteBrand(c *gin.Context) {
+func DeleteBrand(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 
-	//kiem tra id
 	if id == "" {
 		response.ErrorResponse(c, http.StatusBadRequest, "Brand ID is required")
 		return
 	}
 
-	idChecker, error := services.GetBrandById(id)
-	if idChecker.ID == 0 || error != nil {
+	_, err := ctn.BrandService.GetBrandById(id)
+	if err != nil {
 		response.ErrorResponse(c, http.StatusNotFound, "Brand not found")
 		return
 	}
 
-	//goi toi service
-	err := services.DeleteBrand(id)
+	err = ctn.BrandService.DeleteBrand(id)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -133,4 +112,3 @@ func DeleteBrand(c *gin.Context) {
 
 	response.SuccessResponse(c, http.StatusOK, "Brand deleted successfully", nil)
 }
-

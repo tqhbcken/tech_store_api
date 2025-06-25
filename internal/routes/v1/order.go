@@ -1,19 +1,39 @@
 package v1
 
 import (
-	"github.com/gin-gonic/gin"
+	"api_techstore/internal/container"
 	"api_techstore/internal/handlers"
+	"api_techstore/internal/middlewares"
+	"api_techstore/internal/models"
+
+	"github.com/gin-gonic/gin"
 )
 
-func SetupOrderRoute(route *gin.RouterGroup) {
+func SetupOrderRoute(route *gin.RouterGroup, ctn *container.Container) {
 	order := route.Group("/order")
 	{
-		order.GET("/", handlers.GetAllOrders)
-		order.POST("/", handlers.CreateOrder)
-		order.GET("/:id", handlers.GetOrderByID)
-		order.PUT("/:id", handlers.UpdateOrder)
-		order.DELETE("/:id", handlers.DeleteOrder)
-		// order.GET("/user/:userId", handlers.GetOrdersByUserID)
+		order.GET("/", func(c *gin.Context) {
+			handlers.GetAllOrders(c, ctn)
+		})
+		order.POST("/", 
+		middlewares.ValidateRequest(&models.OrderCreateRequest{}),
+		func(c *gin.Context) {
+			handlers.CreateOrder(c, ctn)
+		})
+		order.GET("/:id", func(c *gin.Context) {
+			handlers.GetOrderByID(c, ctn)
+		})
+		order.PUT("/:id", 
+		middlewares.ValidateRequest(&models.OrderUpdateRequest{}),
+		func(c *gin.Context) {
+			handlers.UpdateOrder(c, ctn)
+		})
+		order.DELETE("/:id", func(c *gin.Context) {
+			handlers.DeleteOrder(c, ctn)
+		})
+		order.GET("/user/:userId", func(c *gin.Context) {
+			handlers.GetOrdersByUserID(c, ctn)
+		})
 		// order.GET("/status/:status", handlers.GetOrdersByStatus)
 	}
 }
