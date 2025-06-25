@@ -8,7 +8,7 @@
 - Quản lý người dùng, sản phẩm, thương hiệu, danh mục
 - Quản lý đơn hàng, giỏ hàng, thanh toán
 - Tích hợp Redis, RabbitMQ, Elk Stack(mở rộng)
-- Middleware xác thực, rate limiting, logging, tracing(mở rộngrộng)
+- Middleware xác thực, rate limiting, logging, tracing(mở rộng)
 - Hỗ trợ migration database, unit test, mock service
 
 ## Hướng dẫn cài đặt nhanh
