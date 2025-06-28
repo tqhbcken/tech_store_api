@@ -4,12 +4,15 @@ import (
 	"api_techstore/internal/container"
 	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
+	"api_techstore/internal/services"
 	"api_techstore/pkg/response"
-	"fmt"
 	"net/http"
+	"strconv"
+
+	apperrors "api_techstore/pkg/errors"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // GetAllUsers godoc
@@ -27,11 +30,7 @@ import (
 func GetAllUsers(c *gin.Context, ctn *container.Container) {
 	users, err := ctn.UserService.GetAllUsers()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if len(users) == 0 {
-		response.SuccessResponse(c, http.StatusOK, "No users found", nil)
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Users retrieved successfully", users)
@@ -56,11 +55,11 @@ func GetUserById(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	user, err := ctn.UserService.GetUserById(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if user.ID == 0 {
-		response.ErrorResponse(c, http.StatusNotFound, "User not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "User")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "User retrieved successfully", user)
@@ -82,24 +81,29 @@ func GetUserById(c *gin.Context, ctn *container.Container) {
 // @Router /users [post]
 func CreateUser(c *gin.Context, ctn *container.Container) {
 	req := middlewares.GetValidatedModel(c).(*models.CreateUserReq)
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+
+	// Hash password
+	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to hash password")
+		response.HandleError(c, err)
 		return
 	}
+
 	user := models.User{
 		FullName:     req.FullName,
 		Email:        req.Email,
 		Phone:        req.Phone,
-		PasswordHash: string(hashedPassword),
+		PasswordHash: hashedPassword,
 		Role:         req.Role,
 		IsActive:     req.IsActive,
 	}
+
 	err = ctn.UserService.CreateUser(user)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusCreated, "User created successfully", nil)
 }
 
@@ -122,15 +126,23 @@ func CreateUser(c *gin.Context, ctn *container.Container) {
 func UpdateUser(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	if id == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "ID is required")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("ID is required"))
 		return
 	}
-	idChecker, err := ctn.UserService.GetUserById(id)
-	if idChecker.ID == 0 || err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "User not found")
+
+	// Check if user exists
+	exists, err := ctn.UserService.CheckUserExists(id)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+	if !exists {
+		response.NotFoundResponse(c, "User")
+		return
+	}
+
 	req := middlewares.GetValidatedModel(c).(*models.UserUpdateRequest)
+
 	user := models.User{
 		FullName: req.FullName,
 		Email:    req.Email,
@@ -138,22 +150,26 @@ func UpdateUser(c *gin.Context, ctn *container.Container) {
 		Role:     req.Role,
 		IsActive: false,
 	}
+
+	if req.Password != "" {
+		hashedPassword, err := services.HashPassword(req.Password)
+		if err != nil {
+			response.HandleError(c, err)
+			return
+		}
+		user.PasswordHash = hashedPassword
+	}
+
 	if req.IsActive != nil {
 		user.IsActive = *req.IsActive
 	}
-	if req.Password != "" {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to hash password")
-			return
-		}
-		user.PasswordHash = string(hashedPassword)
-	}
+
 	err = ctn.UserService.UpdateUser(id, user)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "User updated successfully", nil)
 }
 
@@ -174,16 +190,22 @@ func UpdateUser(c *gin.Context, ctn *container.Container) {
 // @Router /users/{id} [delete]
 func DeleteUser(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-	idChecker, err := ctn.UserService.GetUserById(id)
-	if idChecker.ID == 0 || err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "User not found")
+	exists, err := ctn.UserService.CheckUserExists(id)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+	if !exists {
+		response.NotFoundResponse(c, "User")
+		return
+	}
+
 	err = ctn.UserService.DeleteUser(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "User deleted successfully", nil)
 }
 
@@ -199,27 +221,25 @@ func DeleteUser(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /users/profile [get]
 func GetUserProfile(c *gin.Context, ctn *container.Container) {
-	userId, exists := c.Get("user_id")
+	// Get user ID from context
+	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "User ID not found in context")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
-	var id string
-	switch v := userId.(type) {
-	case string:
-		id = v
-	case uint:
-		id = fmt.Sprintf("%d", v)
-	case int:
-		id = fmt.Sprintf("%d", v)
-	default:
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user ID type")
+
+	// Convert user ID to string
+	userIDStr, ok := userID.(uint)
+	if !ok {
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user ID type", http.StatusInternalServerError))
 		return
 	}
-	user, err := ctn.UserService.GetUserById(id)
+
+	user, err := ctn.UserService.GetUserById(strconv.FormatUint(uint64(userIDStr), 10))
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve user profile: "+err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "User profile retrieved successfully", user)
 }

@@ -27,7 +27,7 @@ func (s *paymentService) CreatePayment(payment models.Payment) (models.Payment, 
 
 func (s *paymentService) GetPaymentByOrderID(orderID uint) (models.Payment, error) {
 	var payment models.Payment
-	err := s.db.Where("order_id = ?", orderID).First(&payment).Error
+	err := s.db.Preload("Order").Where("order_id = ?", orderID).First(&payment).Error
 	return payment, err
 }
 

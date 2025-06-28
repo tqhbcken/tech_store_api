@@ -14,7 +14,7 @@ type Address struct {
 
 	// Relations
 	User   User    `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	// Orders []Order `json:"orders,omitempty" gorm:"foreignKey:ShippingAddressID"`
+	Orders []Order `json:"orders,omitempty" gorm:"foreignKey:ShippingAddressID"`
 }
 
 type AddressCreateRequest struct {

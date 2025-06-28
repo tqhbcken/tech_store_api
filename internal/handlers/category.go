@@ -23,7 +23,7 @@ import (
 func GetAllCategories(c *gin.Context, ctn *container.Container) {
 	categories, err := ctn.CategoryService.GetAllCategories()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Categories retrieved successfully", categories)
@@ -44,7 +44,7 @@ func GetCategoryById(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	category, err := ctn.CategoryService.GetCategoryById(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Category retrieved successfully", category)
@@ -66,15 +66,18 @@ func GetCategoryById(c *gin.Context, ctn *container.Container) {
 // @Router /categories [post]
 func CreateCategory(c *gin.Context, ctn *container.Container) {
 	req := middlewares.GetValidatedModel(c).(*models.CategoryCreateRequest)
-	categoryModel := models.Category{
+
+	category := models.Category{
 		Name: req.Name,
 		Slug: req.Slug,
 	}
-	newCategory, err := ctn.CategoryService.CreateCategory(categoryModel)
+
+	newCategory, err := ctn.CategoryService.CreateCategory(category)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusCreated, "Category created successfully", newCategory)
 }
 
@@ -96,15 +99,18 @@ func CreateCategory(c *gin.Context, ctn *container.Container) {
 func UpdateCategory(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	req := middlewares.GetValidatedModel(c).(*models.CategoryUpdateRequest)
-	categoryModel := models.Category{
+
+	category := models.Category{
 		Name: req.Name,
 		Slug: req.Slug,
 	}
-	updatedCategory, err := ctn.CategoryService.UpdateCategory(id, categoryModel)
+
+	updatedCategory, err := ctn.CategoryService.UpdateCategory(id, category)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Category updated successfully", updatedCategory)
 }
 
@@ -125,8 +131,9 @@ func DeleteCategory(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	err := ctn.CategoryService.DeleteCategory(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusNoContent, "Category deleted successfully", nil)
 }

@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
+	apperrors "api_techstore/pkg/errors"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CreateAddress godoc
@@ -25,20 +28,25 @@ import (
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /addresses [post]
 func CreateAddress(c *gin.Context, ctn *container.Container) {
-	req := middlewares.GetValidatedModel(c).(*models.AddressCreateRequest)
-	// Lấy userID từ context (giả định đã có middleware JWT)
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
-	uid, ok := userID.(uint)
+
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
 	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
 		return
 	}
-	addressModel := models.Address{
-		UserID:       uid, // luôn lấy từ context, không lấy từ req.UserID
+
+	// Get validated model from middleware
+	req := middlewares.GetValidatedModel(c).(*models.AddressCreateRequest)
+
+	address := models.Address{
+		UserID:       userIDUint,
 		FullName:     req.FullName,
 		Phone:        req.Phone,
 		AddressLine1: req.AddressLine1,
@@ -47,15 +55,18 @@ func CreateAddress(c *gin.Context, ctn *container.Container) {
 		District:     req.District,
 		IsDefault:    false,
 	}
+
 	if req.IsDefault != nil {
-		addressModel.IsDefault = *req.IsDefault
+		address.IsDefault = *req.IsDefault
 	}
-	address, err := ctn.AddressService.CreateAddress(addressModel)
+
+	newAddress, err := ctn.AddressService.CreateAddress(address)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusCreated, "Address created successfully", address)
+
+	response.SuccessResponse(c, http.StatusCreated, "Address created successfully", newAddress)
 }
 
 // GetAddresses godoc
@@ -70,21 +81,26 @@ func CreateAddress(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /addresses [get]
 func GetAddresses(c *gin.Context, ctn *container.Container) {
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
-	uid, ok := userID.(uint)
+
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
 	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
 		return
 	}
-	addresses, err := ctn.AddressService.GetAllAddresses(uid)
+
+	addresses, err := ctn.AddressService.GetAllAddresses(userIDUint)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Addresses retrieved successfully", addresses)
 }
 
@@ -102,17 +118,23 @@ func GetAddresses(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /addresses/{id} [get]
 func GetAddressByID(c *gin.Context, ctn *container.Container) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id := c.Param("id")
+	addressID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid address id")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid address id"))
 		return
 	}
-	address, err := ctn.AddressService.GetAddressByID(uint(id))
+
+	address, err := ctn.AddressService.GetAddressByID(uint(addressID))
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Address not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Address")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Address retrieved successfully", address)
 }
 
@@ -130,14 +152,17 @@ func GetAddressByID(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /addresses/{id} [put]
 func UpdateAddress(c *gin.Context, ctn *container.Container) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id := c.Param("id")
+	addressID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid address id")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid address id"))
 		return
 	}
+
+	// Get validated model from middleware
 	req := middlewares.GetValidatedModel(c).(*models.AddressUpdateRequest)
-	addressModel := models.Address{
+
+	address := models.Address{
 		FullName:     req.FullName,
 		Phone:        req.Phone,
 		AddressLine1: req.AddressLine1,
@@ -146,15 +171,18 @@ func UpdateAddress(c *gin.Context, ctn *container.Container) {
 		District:     req.District,
 		IsDefault:    false,
 	}
+
 	if req.IsDefault != nil {
-		addressModel.IsDefault = *req.IsDefault
+		address.IsDefault = *req.IsDefault
 	}
-	address, err := ctn.AddressService.UpdateAddress(uint(id), addressModel)
+
+	updatedAddress, err := ctn.AddressService.UpdateAddress(uint(addressID), address)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusOK, "Address updated successfully", address)
+
+	response.SuccessResponse(c, http.StatusOK, "Address updated successfully", updatedAddress)
 }
 
 // DeleteAddress godoc
@@ -170,15 +198,18 @@ func UpdateAddress(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /addresses/{id} [delete]
 func DeleteAddress(c *gin.Context, ctn *container.Container) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id := c.Param("id")
+	addressID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid address id")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid address id"))
 		return
 	}
-	if err := ctn.AddressService.DeleteAddress(uint(id)); err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+
+	err = ctn.AddressService.DeleteAddress(uint(addressID))
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Address deleted successfully", nil)
 }

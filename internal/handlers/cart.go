@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
+	apperrors "api_techstore/pkg/errors"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetCart godoc
@@ -23,41 +26,49 @@ import (
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /cart [get]
 func GetCart(c *gin.Context, ctn *container.Container) {
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-	uid, ok := userID.(uint)
-	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
 
-	cart, err := ctn.CartService.GetCartByUserID(uid)
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
+		return
+	}
+
+	// Get or create cart
+	cart, err := ctn.CartService.GetCartByUserID(userIDUint)
 	if err != nil {
-		// Nếu chưa có cart, tạo mới cart rỗng
-		cartModel := models.Cart{
-			UserID: &uid,
-			Status: "active",
-		}
-		cart, err = ctn.CartService.CreateCart(cartModel)
-		if err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create cart: "+err.Error())
+		if err == gorm.ErrRecordNotFound {
+			// Create new cart if not exists
+			newCart := models.Cart{
+				UserID:    &userIDUint,
+				SessionID: "session_" + strconv.FormatUint(uint64(userIDUint), 10),
+				Status:    "active",
+			}
+			cart, err = ctn.CartService.CreateCart(newCart)
+			if err != nil {
+				response.DatabaseErrorResponse(c, err)
+				return
+			}
+		} else {
+			response.DatabaseErrorResponse(c, err)
 			return
 		}
 	}
 
-	// Lấy items trong cart
+	// Get cart items
 	items, err := ctn.CartItemService.GetItemsByCartID(cart.ID)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get cart items: "+err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
-	// Gán items vào cart
 	cart.Items = items
-
 	response.SuccessResponse(c, http.StatusOK, "Cart retrieved successfully", cart)
 }
 
@@ -75,49 +86,57 @@ func GetCart(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /cart/items [post]
 func AddItemToCart(c *gin.Context, ctn *container.Container) {
-	// Lấy userID từ context
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-	uid, ok := userID.(uint)
-	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
 
-	// Lấy hoặc tạo cart cho user
-	cart, err := ctn.CartService.GetCartByUserID(uid)
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
+		return
+	}
+
+	// Get or create cart
+	cart, err := ctn.CartService.GetCartByUserID(userIDUint)
 	if err != nil {
-		// Nếu chưa có cart, tạo mới
-		cartModel := models.Cart{
-			UserID: &uid,
-			Status: "active",
-		}
-		cart, err = ctn.CartService.CreateCart(cartModel)
-		if err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create cart: "+err.Error())
+		if err == gorm.ErrRecordNotFound {
+			// Create new cart if not exists
+			newCart := models.Cart{
+				UserID:    &userIDUint,
+				SessionID: "session_" + strconv.FormatUint(uint64(userIDUint), 10),
+				Status:    "active",
+			}
+			cart, err = ctn.CartService.CreateCart(newCart)
+			if err != nil {
+				response.DatabaseErrorResponse(c, err)
+				return
+			}
+		} else {
+			response.DatabaseErrorResponse(c, err)
 			return
 		}
 	}
 
-	// Lấy validated request
+	// Get validated model from middleware
 	req := middlewares.GetValidatedModel(c).(*models.CartAddItemRequest)
 
-	// Tạo cart item với CartID
-	itemModel := models.CartItem{
+	cartItem := models.CartItem{
 		CartID:    cart.ID,
 		ProductID: req.ProductID,
 		Quantity:  req.Quantity,
 	}
 
-	item, err := ctn.CartItemService.AddItemToCart(itemModel)
+	newItem, err := ctn.CartItemService.AddItemToCart(cartItem)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusCreated, "Item added to cart", item)
+
+	response.SuccessResponse(c, http.StatusCreated, "Item added to cart", newItem)
 }
 
 // UpdateCartItem godoc
@@ -136,39 +155,47 @@ func AddItemToCart(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /cart/items/{itemId} [put]
 func UpdateCartItem(c *gin.Context, ctn *container.Container) {
-	// Lấy userID từ context
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
-	uid, ok := userID.(uint)
+
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
 	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
 		return
 	}
 
+	// Get item ID from path
 	itemIDStr := c.Param("itemId")
-	itemID, err := strconv.ParseUint(itemIDStr, 10, 64)
+	itemID, err := strconv.ParseUint(itemIDStr, 10, 32)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid item id")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid item id"))
 		return
 	}
 
-	// Kiểm tra quyền sở hữu cart item
-	cart, err := ctn.CartService.GetCartByUserID(uid)
+	// Get cart for user
+	cart, err := ctn.CartService.GetCartByUserID(userIDUint)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Cart not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Cart")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
-	// Kiểm tra item có thuộc cart của user không
+	// Get cart items to verify ownership
 	items, err := ctn.CartItemService.GetItemsByCartID(cart.ID)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get cart items")
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
+	// Check if item exists in user's cart
 	itemExists := false
 	for _, item := range items {
 		if item.ID == uint(itemID) {
@@ -178,20 +205,25 @@ func UpdateCartItem(c *gin.Context, ctn *container.Container) {
 	}
 
 	if !itemExists {
-		response.ErrorResponse(c, http.StatusNotFound, "Cart item not found")
+		response.NotFoundResponse(c, "Cart item")
 		return
 	}
 
+	// Get validated model from middleware
 	req := middlewares.GetValidatedModel(c).(*models.CartUpdateItemRequest)
-	itemModel := models.CartItem{
+
+	cartItem := models.CartItem{
+		CartID:   cart.ID,
 		Quantity: req.Quantity,
 	}
-	item, err := ctn.CartItemService.UpdateCartItem(uint(itemID), itemModel)
+
+	updatedItem, err := ctn.CartItemService.UpdateCartItem(uint(itemID), cartItem)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusOK, "Cart item updated", item)
+
+	response.SuccessResponse(c, http.StatusOK, "Cart item updated", updatedItem)
 }
 
 // RemoveItemFromCart godoc
@@ -209,39 +241,47 @@ func UpdateCartItem(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /cart/items/{itemId} [delete]
 func RemoveItemFromCart(c *gin.Context, ctn *container.Container) {
-	// Lấy userID từ context
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
-	uid, ok := userID.(uint)
+
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
 	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
 		return
 	}
 
+	// Get item ID from path
 	itemIDStr := c.Param("itemId")
-	itemID, err := strconv.ParseUint(itemIDStr, 10, 64)
+	itemID, err := strconv.ParseUint(itemIDStr, 10, 32)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid item id")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid item id"))
 		return
 	}
 
-	// Kiểm tra quyền sở hữu cart item
-	cart, err := ctn.CartService.GetCartByUserID(uid)
+	// Get cart for user
+	cart, err := ctn.CartService.GetCartByUserID(userIDUint)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Cart not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Cart")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
-	// Kiểm tra item có thuộc cart của user không
+	// Get cart items to verify ownership
 	items, err := ctn.CartItemService.GetItemsByCartID(cart.ID)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get cart items")
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
+	// Check if item exists in user's cart
 	itemExists := false
 	for _, item := range items {
 		if item.ID == uint(itemID) {
@@ -251,14 +291,17 @@ func RemoveItemFromCart(c *gin.Context, ctn *container.Container) {
 	}
 
 	if !itemExists {
-		response.ErrorResponse(c, http.StatusNotFound, "Cart item not found")
+		response.NotFoundResponse(c, "Cart item")
 		return
 	}
 
-	if err := ctn.CartItemService.RemoveItemFromCart(uint(itemID)); err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+	// Remove item
+	err = ctn.CartItemService.RemoveItemFromCart(uint(itemID))
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Item removed from cart", nil)
 }
 
@@ -275,28 +318,37 @@ func RemoveItemFromCart(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /cart [delete]
 func ClearCart(c *gin.Context, ctn *container.Container) {
-	// Lấy userID từ context
+	// Get user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
-	uid, ok := userID.(uint)
+
+	// Convert user ID to uint
+	userIDUint, ok := userID.(uint)
 	if !ok {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
 		return
 	}
 
-	// Lấy cart của user
-	cart, err := ctn.CartService.GetCartByUserID(uid)
+	// Get cart for user
+	cart, err := ctn.CartService.GetCartByUserID(userIDUint)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Cart not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Cart")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
-	if err := ctn.CartItemService.ClearCart(cart.ID); err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+	// Clear cart items
+	err = ctn.CartItemService.ClearCart(cart.ID)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Cart cleared", nil)
 }

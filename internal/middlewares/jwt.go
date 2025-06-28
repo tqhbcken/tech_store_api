@@ -6,6 +6,7 @@ import (
 
 	"api_techstore/internal/cache"
 	"api_techstore/internal/database"
+	apperrors "api_techstore/pkg/errors"
 	jwtpkg "api_techstore/pkg/jwt"
 	"api_techstore/pkg/response"
 
@@ -17,29 +18,28 @@ func JWTAuthMiddleware(config *jwtpkg.JWTConfig) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
 		if authHeader == "" {
-			response.ErrorResponse(
-				ctx, http.StatusUnauthorized, "Authorization header is required",
-			)
+			response.NewErrorResponse(ctx, apperrors.NewUnauthorized())
 			ctx.Abort()
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			response.ErrorResponse(
-				ctx, http.StatusUnauthorized, "Invalid authorization header format",
-			)
+			appErr := apperrors.New(apperrors.ErrCodeTokenInvalid, "Invalid authorization header format", http.StatusUnauthorized)
+			response.NewErrorResponse(ctx, appErr)
 			ctx.Abort()
 			return
 		}
 
 		claims, err := config.ValidateAccessRedisToken(parts[1])
 		if err != nil {
-			message := "Invalid token"
+			var appErr *apperrors.AppError
 			if err == jwtpkg.ErrExpiredToken {
-				message = "Token has expired"
+				appErr = apperrors.NewTokenExpired()
+			} else {
+				appErr = apperrors.NewTokenInvalid()
 			}
-			response.ErrorResponse(ctx, http.StatusUnauthorized, message)
+			response.NewErrorResponse(ctx, appErr)
 			ctx.Abort()
 			return
 		}
@@ -47,14 +47,14 @@ func JWTAuthMiddleware(config *jwtpkg.JWTConfig) gin.HandlerFunc {
 		// Check if token exists in Redis
 		redisConn, err := database.InitRedis()
 		if err != nil {
-			response.ErrorResponse(ctx, http.StatusInternalServerError, "Failed to connect to Redis")
+			response.RedisErrorResponse(ctx, err)
 			ctx.Abort()
 			return
 		}
 		redisClient := cache.NewRedisClient(redisConn)
 		isValid, err := redisClient.IsValidToken(ctx.Request.Context(), claims.AccessUUID)
 		if err != nil || !isValid {
-			response.ErrorResponse(ctx, http.StatusUnauthorized, "Token has been revoked or is invalid")
+			response.NewErrorResponse(ctx, apperrors.NewTokenRevoked())
 			ctx.Abort()
 			return
 		}
@@ -72,7 +72,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		userRole, exists := ctx.Get("role")
 		if !exists {
-			response.ErrorResponse(ctx, http.StatusForbidden, "Role not found in context")
+			response.NewErrorResponse(ctx, apperrors.NewUnauthorized())
 			ctx.Abort()
 			return
 		}
@@ -84,7 +84,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 			}
 		}
 
-		response.ErrorResponse(ctx, http.StatusForbidden, "Insufficient permissions")
+		response.NewErrorResponse(ctx, apperrors.NewForbidden())
 		ctx.Abort()
 	}
 }

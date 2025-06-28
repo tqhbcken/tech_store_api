@@ -57,9 +57,10 @@ type SwaggerBrand struct {
 // @Description Order model for Swagger documentation
 type SwaggerOrder struct {
 	SwaggerBase
-	UserID      int     `json:"user_id" example:"1"`
-	TotalAmount float64 `json:"total_amount" example:"1999.99"`
-	Status      string  `json:"status" example:"pending"`
+	UserID            int     `json:"user_id" example:"1"`
+	TotalAmount       float64 `json:"total_amount" example:"1999.99"`
+	Status            string  `json:"status" example:"pending"` // pending, confirmed, processing, shipped, delivered, cancelled
+	ShippingAddressID *int    `json:"shipping_address_id,omitempty" example:"1"`
 }
 
 // SwaggerAddress represents address model for Swagger documentation
@@ -101,6 +102,6 @@ type SwaggerPayment struct {
 	SwaggerBase
 	OrderID uint    `json:"order_id" example:"1"`
 	Amount  float64 `json:"amount" example:"1999.99"`
-	Method  string  `json:"method" example:"cod"`
-	Status  string  `json:"status" example:"pending"`
+	Method  string  `json:"method" example:"cod"`     // momo, zalopay, vnpay, cod
+	Status  string  `json:"status" example:"pending"` // pending, completed, failed, refunded, cancelled
 }

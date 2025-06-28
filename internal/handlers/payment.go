@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
+	apperrors "api_techstore/pkg/errors"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CreatePayment godoc
@@ -27,18 +30,21 @@ import (
 // @Router /payments [post]
 func CreatePayment(c *gin.Context, ctn *container.Container) {
 	req := middlewares.GetValidatedModel(c).(*models.PaymentCreateRequest)
-	paymentModel := models.Payment{
+
+	payment := models.Payment{
 		OrderID: req.OrderID,
 		Amount:  req.Amount,
 		Method:  req.Method,
-		Status:  "pending",
+		Status:  "pending", // Default status
 	}
-	payment, err := ctn.PaymentService.CreatePayment(paymentModel)
+
+	newPayment, err := ctn.PaymentService.CreatePayment(payment)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusCreated, "Payment created successfully", payment)
+
+	response.SuccessResponse(c, http.StatusCreated, "Payment created successfully", newPayment)
 }
 
 // GetPaymentStatus godoc
@@ -56,16 +62,22 @@ func CreatePayment(c *gin.Context, ctn *container.Container) {
 // @Router /payments/{orderId}/status [get]
 func GetPaymentStatus(c *gin.Context, ctn *container.Container) {
 	orderIDStr := c.Param("orderId")
-	orderID, err := strconv.ParseUint(orderIDStr, 10, 64)
+	orderID, err := strconv.ParseUint(orderIDStr, 10, 32)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid order id")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid order id"))
 		return
 	}
+
 	payment, err := ctn.PaymentService.GetPaymentByOrderID(uint(orderID))
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Payment not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Payment")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Payment status retrieved successfully", payment.Status)
 }
 
@@ -82,16 +94,25 @@ func GetPaymentStatus(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /payments-callback/notify [post]
 func HandlePaymentCallback(c *gin.Context, ctn *container.Container) {
-	orderIDStr := c.Query("order_id")
+	orderID := c.Query("order_id")
 	status := c.Query("status")
-	orderID, err := strconv.ParseUint(orderIDStr, 10, 64)
-	if err != nil || status == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid callback data")
+
+	if orderID == "" || status == "" {
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid callback data"))
 		return
 	}
-	if err := ctn.PaymentService.UpdatePaymentStatus(uint(orderID), status); err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+
+	orderIDUint, err := strconv.ParseUint(orderID, 10, 32)
+	if err != nil {
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid order id"))
 		return
 	}
+
+	err = ctn.PaymentService.UpdatePaymentStatus(uint(orderIDUint), status)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+
 	response.SuccessResponse(c, http.StatusOK, "Payment status updated successfully", nil)
 }

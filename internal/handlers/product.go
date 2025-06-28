@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetAllProducts godoc
@@ -23,7 +24,7 @@ import (
 func GetAllProducts(c *gin.Context, ctn *container.Container) {
 	products, err := ctn.ProductService.GetAllProducts()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Products retrieved successfully", products)
@@ -38,13 +39,18 @@ func GetAllProducts(c *gin.Context, ctn *container.Container) {
 // @Security BearerAuth
 // @Param id path string true "Product ID"
 // @Success 200 {object} response.Response{data=models.SwaggerProduct} "Product retrieved successfully"
+// @Failure 404 {object} response.Response "Product not found"
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /products/{id} [get]
 func GetProductById(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	product, err := ctn.ProductService.GetProductById(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Product")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Product retrieved successfully", product)
@@ -81,7 +87,7 @@ func CreateProduct(c *gin.Context, ctn *container.Container) {
 	}
 	newProduct, err := ctn.ProductService.CreateProduct(productModel)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusCreated, "Product created successfully", newProduct)
@@ -100,6 +106,7 @@ func CreateProduct(c *gin.Context, ctn *container.Container) {
 // @Failure 400 {object} response.Response "Invalid request"
 // @Failure 401 {object} response.Response "Unauthorized"
 // @Failure 403 {object} response.Response "Forbidden"
+// @Failure 404 {object} response.Response "Product not found"
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /products/{id} [put]
 func UpdateProduct(c *gin.Context, ctn *container.Container) {
@@ -120,7 +127,11 @@ func UpdateProduct(c *gin.Context, ctn *container.Container) {
 	}
 	updatedProduct, err := ctn.ProductService.UpdateProduct(id, productModel)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Product")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Product updated successfully", updatedProduct)
@@ -137,13 +148,18 @@ func UpdateProduct(c *gin.Context, ctn *container.Container) {
 // @Success 204 {object} response.Response "Product deleted successfully"
 // @Failure 401 {object} response.Response "Unauthorized"
 // @Failure 403 {object} response.Response "Forbidden"
+// @Failure 404 {object} response.Response "Product not found"
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /products/{id} [delete]
 func DeleteProduct(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	err := ctn.ProductService.DeleteProduct(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Product")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusNoContent, "Product deleted successfully", nil)

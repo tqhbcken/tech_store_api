@@ -24,13 +24,13 @@ func NewProductService(db *gorm.DB) ProductService {
 
 func (s *productService) GetAllProducts() ([]models.Product, error) {
 	var products []models.Product
-	err := s.db.Find(&products).Error
+	err := s.db.Preload("Category").Preload("Brand").Find(&products).Error
 	return products, err
 }
 
 func (s *productService) GetProductById(id string) (models.Product, error) {
 	var product models.Product
-	err := s.db.First(&product, "id = ?", id).Error
+	err := s.db.Preload("Category").Preload("Brand").First(&product, "id = ?", id).Error
 	return product, err
 }
 
@@ -44,7 +44,7 @@ func (s *productService) UpdateProduct(id string, product models.Product) (model
 		return models.Product{}, err
 	}
 	var updatedProduct models.Product
-	if err := s.db.First(&updatedProduct, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("Category").Preload("Brand").First(&updatedProduct, "id = ?", id).Error; err != nil {
 		return models.Product{}, err
 	}
 	return updatedProduct, nil

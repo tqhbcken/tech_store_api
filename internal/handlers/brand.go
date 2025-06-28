@@ -7,7 +7,10 @@ import (
 	"api_techstore/pkg/response"
 	"net/http"
 
+	apperrors "api_techstore/pkg/errors"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetAllBrands godoc
@@ -23,7 +26,7 @@ import (
 func GetAllBrands(c *gin.Context, ctn *container.Container) {
 	brands, err := ctn.BrandService.GetAllBrands()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Brands retrieved successfully", brands)
@@ -38,19 +41,24 @@ func GetAllBrands(c *gin.Context, ctn *container.Container) {
 // @Security BearerAuth
 // @Param id path string true "Brand ID"
 // @Success 200 {object} response.Response{data=models.SwaggerBrand} "Brand retrieved successfully"
+// @Failure 400 {object} response.Response "Invalid request"
 // @Failure 404 {object} response.Response "Brand not found"
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /brands/{id} [get]
 func GetBrandById(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	if id == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "Brand ID is required")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Brand ID is required"))
 		return
 	}
-	// Có thể kiểm tra id là số dương nếu cần
+
 	brand, err := ctn.BrandService.GetBrandById(id)
-	if err != nil || brand.ID == 0 {
-		response.ErrorResponse(c, http.StatusNotFound, "Brand not found")
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Brand")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Brand retrieved successfully", brand)
@@ -71,22 +79,22 @@ func GetBrandById(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /brands [post]
 func CreateBrand(c *gin.Context, ctn *container.Container) {
-	// Lấy validated model từ middleware
 	req := middlewares.GetValidatedModel(c).(*models.BrandCreateRequest)
 
-	brandModel := models.Brand{
+	brand := models.Brand{
 		Name:        req.Name,
 		Description: req.Description,
-		IsActive:    false,
 		Slug:        req.Slug,
-	}
-	if req.IsActive != nil {
-		brandModel.IsActive = *req.IsActive
+		IsActive:    false,
 	}
 
-	newBrand, err := ctn.BrandService.CreateBrand(brandModel)
+	if req.IsActive != nil {
+		brand.IsActive = *req.IsActive
+	}
+
+	newBrand, err := ctn.BrandService.CreateBrand(brand)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
@@ -112,30 +120,37 @@ func CreateBrand(c *gin.Context, ctn *container.Container) {
 func UpdateBrand(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	if id == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "Brand ID is required")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Brand ID is required"))
 		return
 	}
 
-	_, err := ctn.BrandService.GetBrandById(id)
+	// Check if brand exists
+	brand, err := ctn.BrandService.GetBrandById(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Brand not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Brand")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
 	req := middlewares.GetValidatedModel(c).(*models.BrandUpdateRequest)
-	brandModel := models.Brand{
+
+	updateBrand := models.Brand{
 		Name:        req.Name,
 		Description: req.Description,
-		IsActive:    false,
 		Slug:        req.Slug,
-	}
-	if req.IsActive != nil {
-		brandModel.IsActive = *req.IsActive
+		IsActive:    brand.IsActive, // Keep existing value if not provided
 	}
 
-	updatedBrand, err := ctn.BrandService.UpdateBrand(id, brandModel)
+	if req.IsActive != nil {
+		updateBrand.IsActive = *req.IsActive
+	}
+
+	updatedBrand, err := ctn.BrandService.UpdateBrand(id, updateBrand)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
@@ -159,21 +174,25 @@ func UpdateBrand(c *gin.Context, ctn *container.Container) {
 // @Router /brands/{id} [delete]
 func DeleteBrand(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-
 	if id == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "Brand ID is required")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Brand ID is required"))
 		return
 	}
 
+	// Check if brand exists
 	_, err := ctn.BrandService.GetBrandById(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "Brand not found")
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Brand")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 
 	err = ctn.BrandService.DeleteBrand(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 

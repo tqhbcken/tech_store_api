@@ -2,10 +2,8 @@ package middlewares
 
 import (
 	"io"
-	"net/http"
 
-	// "regexp"
-
+	apperrors "api_techstore/pkg/errors"
 	"api_techstore/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -24,12 +22,12 @@ type ValidationError struct {
 func ValidateRequest(model interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := c.ShouldBindJSON(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
 		if err := validate.Struct(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
@@ -42,12 +40,12 @@ func ValidateRequest(model interface{}) gin.HandlerFunc {
 func ValidateQuery(model interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := c.ShouldBindQuery(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
 		if err := validate.Struct(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
@@ -60,12 +58,12 @@ func ValidateQuery(model interface{}) gin.HandlerFunc {
 func ValidateForm(model interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := c.ShouldBind(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
 		if err := validate.Struct(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
@@ -78,12 +76,12 @@ func ValidateForm(model interface{}) gin.HandlerFunc {
 func ValidateParams(model interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := c.ShouldBindUri(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
 		if err := validate.Struct(model); err != nil {
-			handleError(c, err)
+			handleValidationError(c, err)
 			return
 		}
 
@@ -92,38 +90,37 @@ func ValidateParams(model interface{}) gin.HandlerFunc {
 	}
 }
 
-// handleError processes validation errors and returns a structured response
-func handleError(c *gin.Context, err error) {
-	var errors []ValidationError
+// handleValidationError processes validation errors and returns a structured response
+func handleValidationError(c *gin.Context, err error) {
+	var validationErrors []ValidationError
 
 	// Custom message for EOF (empty body)
 	if err == io.EOF {
-		errors = append(errors, ValidationError{
+		validationErrors = append(validationErrors, ValidationError{
 			Field:   "request",
 			Message: "Request body is required",
 		})
-	} else if validationErrors, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range validationErrors {
-			errors = append(errors, ValidationError{
+	} else if validatorErrors, ok := err.(validator.ValidationErrors); ok {
+		for _, e := range validatorErrors {
+			validationErrors = append(validationErrors, ValidationError{
 				Field:   e.Field(),
 				Message: getMessage(e.Field(), e.Tag()),
 			})
 		}
 	} else {
-		errors = append(errors, ValidationError{
+		validationErrors = append(validationErrors, ValidationError{
 			Field:   "request",
 			Message: err.Error(),
 		})
 	}
 
-	resp := response.Response{
-		Code:    http.StatusBadRequest,
-		Status:  "error",
-		Message: "Validation failed",
-		Data:    nil,
-		Error:   errors,
+	// Create structured error response
+	appErr := apperrors.NewValidationFailed("Validation failed")
+	appErr.Context = map[string]interface{}{
+		"validation_errors": validationErrors,
 	}
-	c.JSON(http.StatusBadRequest, resp)
+
+	response.NewErrorResponse(c, appErr)
 	c.Abort()
 }
 
@@ -143,7 +140,7 @@ func getMessage(field, tag string) string {
 	case "oneof":
 		return field + " has invalid value"
 	case "gte":
-		return field + " must be greater than or equal to 0"
+		return field + " is greater than or equal to 0"
 	case "gt":
 		return field + " must be greater than 0"
 	default:

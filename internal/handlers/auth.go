@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 
+	apperrors "api_techstore/pkg/errors"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -32,14 +34,15 @@ import (
 func Login(c *gin.Context, ctn *container.Container) {
 	// Lấy validated model từ middleware
 	req := middlewares.GetValidatedModel(c).(*models.LoginReq)
+
 	// Kiểm tra người dùng
 	user, err := services.Login(ctn.DB, req.Email, req.Password)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			response.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
+			response.NewErrorResponse(c, apperrors.NewInvalidCredentials())
 			return
 		}
-		response.ErrorResponse(c, http.StatusInternalServerError, "Error checking user credentials: "+err.Error())
+		response.HandleError(c, err)
 		return
 	}
 
@@ -49,50 +52,44 @@ func Login(c *gin.Context, ctn *container.Container) {
 	// Generate Tokens
 	accessToken, err := jwtCfg.GenerateAccessRedisToken(user.ID, user.Role)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate access token: "+err.Error())
+		response.HandleError(c, err)
 		return
 	}
 
 	refreshToken, err := jwtCfg.GenerateRefreshRedisToken(user.ID, user.Role)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate refresh token: "+err.Error())
+		response.HandleError(c, err)
 		return
 	}
 
 	// Parse tokens to get UUIDs
 	accessClaims, err := jwtCfg.ValidateAccessRedisToken(accessToken)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to parse access token: "+err.Error())
+		response.HandleError(c, err)
 		return
 	}
 
 	refreshClaims, err := jwtCfg.ValidateRefreshRedisToken(refreshToken)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to parse refresh token: "+err.Error())
+		response.HandleError(c, err)
 		return
 	}
 
-	// Connect to Redis //
+	// Connect to Redis
 	redisClient := cache.NewRedisClient(ctn.Redis)
 
 	// Save tokens to Redis
 	err = redisClient.SetToken(c.Request.Context(), accessClaims.AccessUUID, strconv.FormatUint(uint64(user.ID), 10), jwtCfg.AccessTokenDuration)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save access token to Redis: "+err.Error())
+		response.RedisErrorResponse(c, err)
 		return
 	}
-
-	// Debug log
-	// fmt.Printf("DEBUG: Saved access UUID: %s for user: %d\n", accessClaims.AccessUUID, user.ID)
 
 	err = redisClient.SetToken(c.Request.Context(), refreshClaims.RefreshUUID, strconv.FormatUint(uint64(user.ID), 10), jwtCfg.RefreshTokenDuration)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save refresh token to Redis: "+err.Error())
+		response.RedisErrorResponse(c, err)
 		return
 	}
-
-	// Debug log
-	// fmt.Printf("DEBUG: Saved refresh UUID: %s for user: %d\n", refreshClaims.RefreshUUID, user.ID)
 
 	response.SuccessResponse(c, http.StatusOK, "Login successful", gin.H{
 		"user_id":       user.ID,
@@ -117,22 +114,26 @@ func Login(c *gin.Context, ctn *container.Container) {
 func Register(c *gin.Context, di *container.Container) {
 	// Lấy validated model từ middleware
 	req := middlewares.GetValidatedModel(c).(*models.RegisterReq)
+
 	// Kiểm tra email đã tồn tại chưa
 	users, err := services.GetUserByEmail(di.DB, req.Email)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Error checking email: "+err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	if len(users) > 0 {
-		response.ErrorResponse(c, http.StatusConflict, "Email already exists")
+		response.NewErrorResponse(c, apperrors.NewAlreadyExists("Email"))
 		return
 	}
+
 	// Hash password
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to hash password")
+		response.HandleError(c, err)
 		return
 	}
+
 	user := models.User{
 		FullName:     req.FullName,
 		Email:        req.Email,
@@ -141,11 +142,13 @@ func Register(c *gin.Context, di *container.Container) {
 		Role:         req.Role,
 		IsActive:     req.IsActive,
 	}
+
 	err = services.CreateUser(di.DB, user)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusCreated, "User registered successfully", nil)
 }
 
@@ -164,9 +167,8 @@ func Register(c *gin.Context, di *container.Container) {
 func Logout(c *gin.Context, di *container.Container) {
 	// Extract access token claims from context
 	accessUUID, ok := c.Get("access_uuid")
-	// fmt.Println("DEBUG: Access UUID from context:", accessUUID)
 	if !ok {
-		response.ErrorResponse(c, http.StatusBadRequest, "Could not get access token claims")
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
 		return
 	}
 
@@ -175,7 +177,7 @@ func Logout(c *gin.Context, di *container.Container) {
 		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "refresh_token field is required")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("refresh_token field is required"))
 		return
 	}
 
@@ -183,7 +185,7 @@ func Logout(c *gin.Context, di *container.Container) {
 	jwtCfg := di.JWTConfig
 	refreshClaims, err := jwtCfg.ValidateRefreshRedisToken(req.RefreshToken)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Invalid or expired refresh token")
+		response.NewErrorResponse(c, apperrors.NewTokenInvalid())
 		return
 	}
 
@@ -217,7 +219,7 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "refresh_token field is required")
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("refresh_token field is required"))
 		return
 	}
 
@@ -225,34 +227,41 @@ func RefreshToken(c *gin.Context) {
 	jwtCfg := jwt.NewJWTConfig()
 	claims, err := jwtCfg.ValidateRefreshRedisToken(req.RefreshToken)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusUnauthorized, "Invalid or expired refresh token")
+		response.NewErrorResponse(c, apperrors.NewTokenInvalid())
 		return
 	}
 
-	// Generate a new access token
+	// Check if refresh token exists in Redis
+	redisConn, err := database.InitRedis()
+	if err != nil {
+		response.RedisErrorResponse(c, err)
+		return
+	}
+	redisClient := cache.NewRedisClient(redisConn)
+	isValid, err := redisClient.IsValidToken(c.Request.Context(), claims.RefreshUUID)
+	if err != nil || !isValid {
+		response.NewErrorResponse(c, apperrors.NewTokenRevoked())
+		return
+	}
+
+	// Generate new access token
 	newAccessToken, err := jwtCfg.GenerateAccessRedisToken(claims.UserID, claims.Role)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Could not generate new access token")
+		response.HandleError(c, err)
 		return
 	}
 
 	// Parse new access token to get UUID
 	newAccessClaims, err := jwtCfg.ValidateAccessRedisToken(newAccessToken)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to parse new access token: "+err.Error())
+		response.HandleError(c, err)
 		return
 	}
 
 	// Save new access token to Redis
-	redisConn, err := database.InitRedis()
-	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to connect to Redis: "+err.Error())
-		return
-	}
-	redisClient := cache.NewRedisClient(redisConn)
 	err = redisClient.SetToken(c.Request.Context(), newAccessClaims.AccessUUID, strconv.FormatUint(uint64(claims.UserID), 10), jwtCfg.AccessTokenDuration)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save new access token to Redis: "+err.Error())
+		response.RedisErrorResponse(c, err)
 		return
 	}
 
@@ -261,12 +270,19 @@ func RefreshToken(c *gin.Context) {
 	})
 }
 
-// TestRedis - Handler để test Redis (chỉ dùng cho development)
+// TestRedis godoc
+// @Summary Test Redis connection
+// @Description Test Redis connection and basic operations
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response "Redis test successful"
+// @Failure 500 {object} response.Response "Redis test failed"
+// @Router /auth/test-redis [get]
 func TestRedis(c *gin.Context) {
-	// Connect to Redis
 	redisConn, err := database.InitRedis()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to connect to Redis: "+err.Error())
+		response.RedisErrorResponse(c, err)
 		return
 	}
 
@@ -302,19 +318,26 @@ func TestRedis(c *gin.Context) {
 	})
 }
 
-// ClearRedis - Handler để xóa thủ công Redis (chỉ dùng cho development)
+// ClearRedis godoc
+// @Summary Clear Redis cache
+// @Description Clear all data from Redis cache
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response "Redis cleared successfully"
+// @Failure 500 {object} response.Response "Failed to clear Redis"
+// @Router /auth/clear-redis [delete]
 func ClearRedis(c *gin.Context) {
-	// Connect to Redis
 	redisConn, err := database.InitRedis()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to connect to Redis: "+err.Error())
+		response.RedisErrorResponse(c, err)
 		return
 	}
 
 	// Get all keys
 	keys, err := redisConn.Keys(c.Request.Context(), "*").Result()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get Redis keys: "+err.Error())
+		response.RedisErrorResponse(c, err)
 		return
 	}
 

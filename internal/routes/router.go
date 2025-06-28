@@ -8,6 +8,8 @@ import (
 	"api_techstore/pkg/response"
 	"net/http"
 
+	apperrors "api_techstore/pkg/errors"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -40,11 +42,11 @@ func SetupRouter(r *gin.Engine, ctn *container.Container) {
 	}
 
 	r.NoRoute(func(c *gin.Context) {
-		response.ErrorResponse(c, http.StatusNotFound, "Page not found")
+		response.NewErrorResponse(c, apperrors.NewNotFound("Page"))
 	})
 
 	r.NoMethod(func(c *gin.Context) {
-		response.ErrorResponse(c, http.StatusMethodNotAllowed, "Method not allowed")
+		response.NewErrorResponse(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Method not allowed", http.StatusMethodNotAllowed))
 	})
 
 	//swagger

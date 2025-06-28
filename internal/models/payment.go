@@ -4,8 +4,8 @@ type Payment struct {
 	Base
 	OrderID uint    `gorm:"column:order_id;not null;unique" json:"order_id"`
 	Amount  float64 `gorm:"column:amount;not null" json:"amount"`
-	Method  string  `gorm:"column:method;not null" json:"method"`        // momo, zalopay, vnpay, cod
-	Status  string  `gorm:"column:status;default:pending" json:"status"` // pending, completed, failed, refunded
+	Method  string  `gorm:"column:method;not null" json:"method"` // momo, zalopay, vnpay, cod
+	Status  string  `gorm:"column:status;default:pending;check:status IN ('pending', 'completed', 'failed', 'refunded', 'cancelled')" json:"status"`
 
 	Order Order `json:"order,omitempty" gorm:"foreignKey:OrderID"`
 }
@@ -17,5 +17,5 @@ type PaymentCreateRequest struct {
 }
 
 type PaymentUpdateRequest struct {
-	Status string `json:"status" binding:"required,oneof=pending completed failed refunded"`
+	Status string `json:"status" binding:"required,oneof=pending completed failed refunded cancelled"`
 }

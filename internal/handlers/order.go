@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetAllOrders godoc
@@ -23,7 +24,7 @@ import (
 func GetAllOrders(c *gin.Context, ctn *container.Container) {
 	orders, err := ctn.OrderService.GetAllOrders()
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Orders retrieved successfully", orders)
@@ -44,7 +45,7 @@ func GetOrderByID(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 	order, err := ctn.OrderService.GetOrderByID(id)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
 	response.SuccessResponse(c, http.StatusOK, "Order retrieved successfully", order)
@@ -66,17 +67,26 @@ func GetOrderByID(c *gin.Context, ctn *container.Container) {
 // @Router /order [post]
 func CreateOrder(c *gin.Context, ctn *container.Container) {
 	req := middlewares.GetValidatedModel(c).(*models.OrderCreateRequest)
+
 	order := models.Order{
-		UserID:      req.UserID,
-		TotalAmount: req.TotalAmount,
-		Status:      req.Status,
+		UserID:            req.UserID,
+		TotalAmount:       req.TotalAmount,
+		Status:            req.Status,
+		ShippingAddressID: req.ShippingAddressID,
 	}
-	createdOrder, err := ctn.OrderService.CreateOrder(order)
+
+	// Set default status if not provided
+	if order.Status == "" {
+		order.Status = "pending"
+	}
+
+	newOrder, err := ctn.OrderService.CreateOrder(order)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusCreated, "Order created successfully", createdOrder)
+
+	response.SuccessResponse(c, http.StatusCreated, "Order created successfully", newOrder)
 }
 
 // UpdateOrder godoc
@@ -97,21 +107,33 @@ func CreateOrder(c *gin.Context, ctn *container.Container) {
 // @Router /order/{id} [put]
 func UpdateOrder(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-	req := middlewares.GetValidatedModel(c).(*models.OrderUpdateRequest)
-	if !checkOrderExists(ctn, id) {
-		response.ErrorResponse(c, http.StatusNotFound, "Order not found")
+
+	// Check if order exists
+	_, err := ctn.OrderService.GetOrderByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			response.NotFoundResponse(c, "Order")
+			return
+		}
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
+	req := middlewares.GetValidatedModel(c).(*models.OrderUpdateRequest)
+
 	order := models.Order{
-		UserID:      req.UserID,
-		TotalAmount: req.TotalAmount,
-		Status:      req.Status,
+		UserID:            req.UserID,
+		TotalAmount:       req.TotalAmount,
+		Status:            req.Status,
+		ShippingAddressID: req.ShippingAddressID,
 	}
+
 	updatedOrder, err := ctn.OrderService.UpdateOrder(id, order)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
+
 	response.SuccessResponse(c, http.StatusOK, "Order updated successfully", updatedOrder)
 }
 
@@ -131,14 +153,12 @@ func UpdateOrder(c *gin.Context, ctn *container.Container) {
 // @Router /order/{id} [delete]
 func DeleteOrder(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
-	if !checkOrderExists(ctn, id) {
-		response.ErrorResponse(c, http.StatusNotFound, "Order not found")
+	err := ctn.OrderService.DeleteOrder(id)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	if err := ctn.OrderService.DeleteOrder(id); err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
+
 	response.SuccessResponse(c, http.StatusOK, "Order deleted successfully", nil)
 }
 
@@ -158,17 +178,14 @@ func GetOrdersByUserID(c *gin.Context, ctn *container.Container) {
 	userID := c.Param("userId")
 	orders, err := ctn.OrderService.GetOrdersByUserID(userID)
 	if err != nil {
-		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	if len(orders) == 0 {
-		response.ErrorResponse(c, http.StatusNotFound, "No orders found for this user")
-		return
-	}
-	response.SuccessResponse(c, http.StatusOK, "Orders retrieved successfully", orders)
-}
 
-func checkOrderExists(ctn *container.Container, id string) bool {
-	_, err := ctn.OrderService.GetOrderByID(id)
-	return err == nil
+	if len(orders) == 0 {
+		response.NotFoundResponse(c, "No orders found for this user")
+		return
+	}
+
+	response.SuccessResponse(c, http.StatusOK, "Orders retrieved successfully", orders)
 }

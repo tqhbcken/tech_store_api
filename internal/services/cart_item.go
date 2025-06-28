@@ -63,7 +63,7 @@ func (s *cartItemService) RemoveItemFromCart(id uint) error {
 
 func (s *cartItemService) GetItemsByCartID(cartID uint) ([]models.CartItem, error) {
 	var items []models.CartItem
-	err := s.db.Where("cart_id = ?", cartID).Find(&items).Error
+	err := s.db.Preload("Product").Where("cart_id = ?", cartID).Find(&items).Error
 	return items, err
 }
 

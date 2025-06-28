@@ -24,13 +24,13 @@ func NewAddressService(db *gorm.DB) AddressService {
 
 func (s *addressService) GetAllAddresses(userID uint) ([]models.Address, error) {
 	var addresses []models.Address
-	err := s.db.Where("user_id = ?", userID).Find(&addresses).Error
+	err := s.db.Preload("User").Where("user_id = ?", userID).Find(&addresses).Error
 	return addresses, err
 }
 
 func (s *addressService) GetAddressByID(id uint) (models.Address, error) {
 	var address models.Address
-	err := s.db.First(&address, id).Error
+	err := s.db.Preload("User").First(&address, id).Error
 	return address, err
 }
 

@@ -25,7 +25,7 @@ func NewOrderService(db *gorm.DB) OrderService {
 
 func (s *orderService) GetAllOrders() ([]models.Order, error) {
 	var orders []models.Order
-	if err := s.db.Find(&orders).Error; err != nil {
+	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
@@ -33,7 +33,7 @@ func (s *orderService) GetAllOrders() ([]models.Order, error) {
 
 func (s *orderService) GetOrderByID(id string) (models.Order, error) {
 	var order models.Order
-	if err := s.db.First(&order, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").First(&order, "id = ?", id).Error; err != nil {
 		return models.Order{}, err
 	}
 	return order, nil
@@ -70,7 +70,7 @@ func (s *orderService) DeleteOrder(id string) error {
 
 func (s *orderService) GetOrdersByUserID(userID string) ([]models.Order, error) {
 	var orders []models.Order
-	if err := s.db.Where("user_id = ?", userID).Find(&orders).Error; err != nil {
+	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").Where("user_id = ?", userID).Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
