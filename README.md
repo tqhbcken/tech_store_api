@@ -8,7 +8,7 @@
 - Quản lý người dùng, sản phẩm, thương hiệu, danh mục
 - Quản lý đơn hàng, giỏ hàng, thanh toán
 - Tích hợp Redis, RabbitMQ, Elk Stack(mở rộng)
-- Middleware xác thực, rate limiting, logging, tracing
+- Middleware xác thực, rate limiting, logging, tracing(mở rộng)
 - Hỗ trợ migration database, unit test, mock service
 
 ## Hướng dẫn cài đặt nhanh
@@ -25,7 +25,7 @@
    - Copy file `.env.example` thành `.env` và chỉnh sửa thông tin cấu hình phù hợp.
 4. **Chạy migration database:**
    ```bash
-   ./scripts/migrate.sh
+   ./scripts/migrate.sh(mở rộng)
    ```
 5. **Chạy ứng dụng:**
    ```bash
