@@ -11,6 +11,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CreateAddress godoc
+// @Summary Create new address
+// @Description Create a new address for the current user
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.AddressCreateRequest true "Address data"
+// @Success 201 {object} response.Response{data=models.SwaggerAddress} "Address created successfully"
+// @Failure 400 {object} response.Response "Invalid request"
+// @Failure 401 {object} response.Response "Unauthorized"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /addresses [post]
 func CreateAddress(c *gin.Context, ctn *container.Container) {
 	req := middlewares.GetValidatedModel(c).(*models.AddressCreateRequest)
 	// Lấy userID từ context (giả định đã có middleware JWT)
@@ -45,6 +58,17 @@ func CreateAddress(c *gin.Context, ctn *container.Container) {
 	response.SuccessResponse(c, http.StatusCreated, "Address created successfully", address)
 }
 
+// GetAddresses godoc
+// @Summary Get all addresses
+// @Description Retrieve all addresses for the current user
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response{data=[]models.SwaggerAddress} "Addresses retrieved successfully"
+// @Failure 401 {object} response.Response "Unauthorized"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /addresses [get]
 func GetAddresses(c *gin.Context, ctn *container.Container) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -64,6 +88,19 @@ func GetAddresses(c *gin.Context, ctn *container.Container) {
 	response.SuccessResponse(c, http.StatusOK, "Addresses retrieved successfully", addresses)
 }
 
+// GetAddressByID godoc
+// @Summary Get address by ID
+// @Description Retrieve a specific address by ID
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Address ID"
+// @Success 200 {object} response.Response{data=models.SwaggerAddress} "Address retrieved successfully"
+// @Failure 400 {object} response.Response "Invalid address id"
+// @Failure 404 {object} response.Response "Address not found"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /addresses/{id} [get]
 func GetAddressByID(c *gin.Context, ctn *container.Container) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
@@ -79,6 +116,19 @@ func GetAddressByID(c *gin.Context, ctn *container.Container) {
 	response.SuccessResponse(c, http.StatusOK, "Address retrieved successfully", address)
 }
 
+// UpdateAddress godoc
+// @Summary Update address
+// @Description Update address information
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Address ID"
+// @Param request body models.AddressUpdateRequest true "Address update data"
+// @Success 200 {object} response.Response{data=models.SwaggerAddress} "Address updated successfully"
+// @Failure 400 {object} response.Response "Invalid request"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /addresses/{id} [put]
 func UpdateAddress(c *gin.Context, ctn *container.Container) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
@@ -107,6 +157,18 @@ func UpdateAddress(c *gin.Context, ctn *container.Container) {
 	response.SuccessResponse(c, http.StatusOK, "Address updated successfully", address)
 }
 
+// DeleteAddress godoc
+// @Summary Delete address
+// @Description Delete an address
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Address ID"
+// @Success 200 {object} response.Response "Address deleted successfully"
+// @Failure 400 {object} response.Response "Invalid address id"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /addresses/{id} [delete]
 func DeleteAddress(c *gin.Context, ctn *container.Container) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)

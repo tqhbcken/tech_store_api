@@ -4,10 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Response represents the standard API response structure
+// @Description Standard API response structure
 type Response struct {
-	Code    int         `json:"code"`
-	Status  string      `json:"status"` // "success" | "error"
-	Message string      `json:"message,omitempty"`
+	Code    int         `json:"code" example:"200"`
+	Status  string      `json:"status" example:"success"` // "success" | "error"
+	Message string      `json:"message,omitempty" example:"Operation successful"`
 	Data    interface{} `json:"data,omitempty"`
 	Error   interface{} `json:"error,omitempty"`
 }

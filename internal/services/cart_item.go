@@ -23,8 +23,27 @@ func NewCartItemService(db *gorm.DB) CartItemService {
 }
 
 func (s *cartItemService) AddItemToCart(item models.CartItem) (models.CartItem, error) {
-	err := s.db.Create(&item).Error
-	return item, err
+	// Kiểm tra xem item đã tồn tại trong cart chưa
+	var existingItem models.CartItem
+	err := s.db.Where("cart_id = ? AND product_id = ?", item.CartID, item.ProductID).First(&existingItem).Error
+
+	if err == gorm.ErrRecordNotFound {
+		// Item chưa tồn tại, tạo mới
+		err = s.db.Create(&item).Error
+		return item, err
+	} else if err != nil {
+		// Có lỗi khác
+		return models.CartItem{}, err
+	} else {
+		// Item đã tồn tại, update quantity
+		newQuantity := existingItem.Quantity + item.Quantity
+		err = s.db.Model(&existingItem).Update("quantity", newQuantity).Error
+		if err != nil {
+			return models.CartItem{}, err
+		}
+		existingItem.Quantity = newQuantity
+		return existingItem, nil
+	}
 }
 
 func (s *cartItemService) UpdateCartItem(id uint, item models.CartItem) (models.CartItem, error) {

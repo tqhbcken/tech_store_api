@@ -17,6 +17,18 @@ import (
 	"gorm.io/gorm"
 )
 
+// Login godoc
+// @Summary User login
+// @Description Authenticate user and return JWT tokens
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.LoginReq true "Login credentials"
+// @Success 200 {object} response.Response{data=map[string]interface{}} "Login successful"
+// @Failure 400 {object} response.Response "Invalid request"
+// @Failure 401 {object} response.Response "Invalid credentials"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /auth/login [post]
 func Login(c *gin.Context, ctn *container.Container) {
 	// Lấy validated model từ middleware
 	req := middlewares.GetValidatedModel(c).(*models.LoginReq)
@@ -90,6 +102,18 @@ func Login(c *gin.Context, ctn *container.Container) {
 	})
 }
 
+// Register godoc
+// @Summary User registration
+// @Description Register a new user account
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.RegisterReq true "User registration data"
+// @Success 201 {object} response.Response "User registered successfully"
+// @Failure 400 {object} response.Response "Invalid request"
+// @Failure 409 {object} response.Response "Email already exists"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /auth/register [post]
 func Register(c *gin.Context, di *container.Container) {
 	// Lấy validated model từ middleware
 	req := middlewares.GetValidatedModel(c).(*models.RegisterReq)
@@ -125,6 +149,18 @@ func Register(c *gin.Context, di *container.Container) {
 	response.SuccessResponse(c, http.StatusCreated, "User registered successfully", nil)
 }
 
+// Logout godoc
+// @Summary User logout
+// @Description Logout user and invalidate tokens
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body object{refresh_token=string} true "Refresh token"
+// @Success 200 {object} response.Response "Logout successful"
+// @Failure 400 {object} response.Response "Invalid request"
+// @Failure 401 {object} response.Response "Unauthorized"
+// @Router /auth/logout [post]
 func Logout(c *gin.Context, di *container.Container) {
 	// Extract access token claims from context
 	accessUUID, ok := c.Get("access_uuid")
@@ -163,6 +199,18 @@ func Logout(c *gin.Context, di *container.Container) {
 	response.SuccessResponse(c, http.StatusOK, "Logout successful", nil)
 }
 
+// RefreshToken godoc
+// @Summary Refresh access token
+// @Description Get new access token using refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body object{refresh_token=string} true "Refresh token"
+// @Success 200 {object} response.Response{data=map[string]interface{}} "Token refreshed successfully"
+// @Failure 400 {object} response.Response "Invalid request"
+// @Failure 401 {object} response.Response "Invalid refresh token"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /auth/refresh [post]
 func RefreshToken(c *gin.Context) {
 	var req struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`

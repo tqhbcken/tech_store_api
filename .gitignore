@@ -24,8 +24,8 @@
 
 # Documentation
 # Uncomment if you generate swagger files and don't want to commit them
-# docs/swagger.json
-# docs/swagger.yaml
+docs/swagger.json
+docs/swagger.yaml
 
 # IDE / Editor specific
 .vscode/
