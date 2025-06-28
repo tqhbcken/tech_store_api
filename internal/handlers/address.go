@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"api_techstore/internal/container"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
 	"api_techstore/pkg/response"
 	"net/http"
@@ -11,11 +12,7 @@ import (
 )
 
 func CreateAddress(c *gin.Context, ctn *container.Container) {
-	var req models.Address
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
-	}
+	req := middlewares.GetValidatedModel(c).(*models.AddressCreateRequest)
 	// Lấy userID từ context (giả định đã có middleware JWT)
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -27,8 +24,20 @@ func CreateAddress(c *gin.Context, ctn *container.Container) {
 		response.ErrorResponse(c, http.StatusInternalServerError, "Invalid user id type")
 		return
 	}
-	req.UserID = uid
-	address, err := ctn.AddressService.CreateAddress(req)
+	addressModel := models.Address{
+		UserID:       uid, // luôn lấy từ context, không lấy từ req.UserID
+		FullName:     req.FullName,
+		Phone:        req.Phone,
+		AddressLine1: req.AddressLine1,
+		AddressLine2: req.AddressLine2,
+		City:         req.City,
+		District:     req.District,
+		IsDefault:    false,
+	}
+	if req.IsDefault != nil {
+		addressModel.IsDefault = *req.IsDefault
+	}
+	address, err := ctn.AddressService.CreateAddress(addressModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -77,12 +86,20 @@ func UpdateAddress(c *gin.Context, ctn *container.Container) {
 		response.ErrorResponse(c, http.StatusBadRequest, "Invalid address id")
 		return
 	}
-	var req models.Address
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
+	req := middlewares.GetValidatedModel(c).(*models.AddressUpdateRequest)
+	addressModel := models.Address{
+		FullName:     req.FullName,
+		Phone:        req.Phone,
+		AddressLine1: req.AddressLine1,
+		AddressLine2: req.AddressLine2,
+		City:         req.City,
+		District:     req.District,
+		IsDefault:    false,
 	}
-	address, err := ctn.AddressService.UpdateAddress(uint(id), req)
+	if req.IsDefault != nil {
+		addressModel.IsDefault = *req.IsDefault
+	}
+	address, err := ctn.AddressService.UpdateAddress(uint(id), addressModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

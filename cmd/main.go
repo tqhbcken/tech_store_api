@@ -12,7 +12,7 @@ import (
 func main() {
 	// init container
 	ctn := container.NewContainer()
-	
+
 	// auto migrate
 	if err := ctn.DB.AutoMigrate(
 		&models.User{},
@@ -21,6 +21,11 @@ func main() {
 		&models.Product{},
 		&models.Order{},
 		&models.OrderItem{},
+		&models.Address{},
+		&models.Payment{},
+		&models.Cart{},
+		&models.CartItem{},
+		&models.ProductImage{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}

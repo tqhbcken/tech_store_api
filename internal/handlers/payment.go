@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"api_techstore/internal/container"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
 	"api_techstore/pkg/response"
 	"net/http"
@@ -12,12 +13,14 @@ import (
 
 // CreatePayment creates a new payment record
 func CreatePayment(c *gin.Context, ctn *container.Container) {
-	var req models.Payment
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
+	req := middlewares.GetValidatedModel(c).(*models.PaymentCreateRequest)
+	paymentModel := models.Payment{
+		OrderID: req.OrderID,
+		Amount:  req.Amount,
+		Method:  req.Method,
+		Status:  "pending",
 	}
-	payment, err := ctn.PaymentService.CreatePayment(req)
+	payment, err := ctn.PaymentService.CreatePayment(paymentModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

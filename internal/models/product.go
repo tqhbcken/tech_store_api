@@ -2,14 +2,14 @@ package models
 
 type Product struct {
 	Base
-	Name        string  `json:"name" gorm:"column:name"`
-	Description string  `json:"description" gorm:"column:description"`
-	Price       float64 `json:"price" gorm:"column:price"`
-	Quantity    int     `json:"quantity" gorm:"column:quantity"`
-	CategoryID  uint    `json:"category_id" gorm:"not null"`
-	BrandID     *uint   `json:"brand_id,omitempty"`
-	Slug        string  `json:"slug" gorm:"unique"`
-	IsActive    bool    `json:"is_active" gorm:"column:is_active"`
+	Name        string  `gorm:"column:name" json:"name"`
+	Description string  `gorm:"column:description" json:"description"`
+	Price       float64 `gorm:"column:price" json:"price"`
+	Quantity    int     `gorm:"column:quantity" json:"quantity"`
+	CategoryID  uint    `gorm:"column:category_id;not null" json:"category_id"`
+	BrandID     *uint   `gorm:"column:brand_id" json:"brand_id,omitempty"`
+	Slug        string  `gorm:"column:slug;unique" json:"slug"`
+	IsActive    bool    `gorm:"column:is_active" json:"is_active"`
 
 	// Relations
 	Category   Category    `json:"category,omitempty" gorm:"foreignKey:CategoryID"`

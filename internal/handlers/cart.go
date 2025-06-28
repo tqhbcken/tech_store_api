@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"api_techstore/internal/container"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
 	"api_techstore/pkg/response"
 	"net/http"
@@ -32,12 +33,12 @@ func GetCart(c *gin.Context, ctn *container.Container) {
 
 // AddItemToCart adds a product to the cart
 func AddItemToCart(c *gin.Context, ctn *container.Container) {
-	var req models.CartItem
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
+	req := middlewares.GetValidatedModel(c).(*models.CartAddItemRequest)
+	itemModel := models.CartItem{
+		ProductID: req.ProductID,
+		Quantity:  req.Quantity,
 	}
-	item, err := ctn.CartItemService.AddItemToCart(req)
+	item, err := ctn.CartItemService.AddItemToCart(itemModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -53,12 +54,11 @@ func UpdateCartItem(c *gin.Context, ctn *container.Container) {
 		response.ErrorResponse(c, http.StatusBadRequest, "Invalid item id")
 		return
 	}
-	var req models.CartItem
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid input")
-		return
+	req := middlewares.GetValidatedModel(c).(*models.CartUpdateItemRequest)
+	itemModel := models.CartItem{
+		Quantity: req.Quantity,
 	}
-	item, err := ctn.CartItemService.UpdateCartItem(uint(itemID), req)
+	item, err := ctn.CartItemService.UpdateCartItem(uint(itemID), itemModel)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

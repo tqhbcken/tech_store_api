@@ -2,7 +2,7 @@ package models
 
 type CartItem struct {
 	Base
-	CartID    uint
-	ProductID uint
-	Quantity  int `gorm:"not null;default:1"`
+	CartID    uint `gorm:"column:cart_id" json:"cart_id"`
+	ProductID uint `gorm:"column:product_id" json:"product_id"`
+	Quantity  int  `gorm:"column:quantity;not null;default:1" json:"quantity"`
 }

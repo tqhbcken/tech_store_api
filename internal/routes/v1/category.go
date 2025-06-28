@@ -18,19 +18,23 @@ func SetupCategoryRoute(r *gin.RouterGroup, ctn *container.Container) {
 		category.GET("/:id", func(c *gin.Context) {
 			handlers.GetCategoryById(c, ctn)
 		})
-		category.POST("", 
-		middlewares.ValidateRequest(&models.CategoryCreateRequest{}),
-		func(c *gin.Context) {
-			handlers.CreateCategory(c, ctn)
-		})
-		category.PUT("/:id", 
-		middlewares.ValidateRequest(&models.CategoryUpdateRequest{}),
-		func(c *gin.Context) {
-			handlers.UpdateCategory(c, ctn)
-		})
-		category.DELETE("/:id", func(c *gin.Context) {
-			handlers.DeleteCategory(c, ctn)
-		})
+		category.POST("",
+			middlewares.RequireRole("admin"),
+			middlewares.ValidateRequest(&models.CategoryCreateRequest{}),
+			func(c *gin.Context) {
+				handlers.CreateCategory(c, ctn)
+			})
+		category.PUT("/:id",
+			middlewares.RequireRole("admin"),
+			middlewares.ValidateRequest(&models.CategoryUpdateRequest{}),
+			func(c *gin.Context) {
+				handlers.UpdateCategory(c, ctn)
+			})
+		category.DELETE("/:id",
+			middlewares.RequireRole("admin"),
+			func(c *gin.Context) {
+				handlers.DeleteCategory(c, ctn)
+			})
 
 		// category.GET("/:slug", handlers.GetCategoryBySlug)
 	}

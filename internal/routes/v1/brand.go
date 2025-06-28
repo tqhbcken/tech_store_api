@@ -18,19 +18,23 @@ func SetupBrandRoute(r *gin.RouterGroup, ctn *container.Container) {
 		brands.GET("/:id", func(c *gin.Context) {
 			handlers.GetBrandById(c, ctn)
 		})
-		brands.POST("", 
-		middlewares.ValidateRequest(&models.BrandCreateRequest{}),
-		func(c *gin.Context) {
-			handlers.CreateBrand(c, ctn)
-		})
-		brands.PUT("/:id", 
-		middlewares.ValidateRequest(&models.BrandUpdateRequest{}),
-		func(c *gin.Context) {
-			handlers.UpdateBrand(c, ctn)
-		})
-		brands.DELETE("/:id", func(c *gin.Context) {
-			handlers.DeleteBrand(c, ctn)
-		})
+		brands.POST("",
+			middlewares.RequireRole("admin"),
+			middlewares.ValidateRequest(&models.BrandCreateRequest{}),
+			func(c *gin.Context) {
+				handlers.CreateBrand(c, ctn)
+			})
+		brands.PUT("/:id",
+			middlewares.RequireRole("admin"),
+			middlewares.ValidateRequest(&models.BrandUpdateRequest{}),
+			func(c *gin.Context) {
+				handlers.UpdateBrand(c, ctn)
+			})
+		brands.DELETE("/:id",
+			middlewares.RequireRole("admin"),
+			func(c *gin.Context) {
+				handlers.DeleteBrand(c, ctn)
+			})
 
 		// brands.GET("/:slug", handlers.GetBrandBySlug)
 		// brands.GET("/:id/products", handlers.GetProductsByBrand)

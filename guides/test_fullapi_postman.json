@@ -1,0 +1,528 @@
+{
+  "info": {
+    "name": "TechStore API Full",
+    "_postman_id": "techstore-api-full-collection",
+    "description": "Full collection for testing all endpoints of TechStore API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Nguyen Van A\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"0912345678\",\n  \"password\": \"12345678\",\n  \"role\": \"user\",\n  \"is_active\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"12345678\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users"] }
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "1"] }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"phone\": \"0999999999\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\",\n  \"is_active\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"User Updated\",\n  \"email\": \"userupdated@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "1"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "1"] }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "profile"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/categories", "host": ["{{baseUrl}}"], "path": ["api", "v1", "categories"] }
+          }
+        },
+        {
+          "name": "Get Category By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "categories", "1"] }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop\",\n  \"slug\": \"laptop\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/categories", "host": ["{{baseUrl}}"], "path": ["api", "v1", "categories"] }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop Updated\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "categories", "1"] }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "categories", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand",
+      "item": [
+        {
+          "name": "Get All Brands",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/brands", "host": ["{{baseUrl}}"], "path": ["api", "v1", "brands"] }
+          }
+        },
+        {
+          "name": "Get Brand By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/brands/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "brands", "1"] }
+          }
+        },
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apple\",\n  \"description\": \"Apple Inc.\",\n  \"slug\": \"apple\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/brands", "host": ["{{baseUrl}}"], "path": ["api", "v1", "brands"] }
+          }
+        },
+        {
+          "name": "Update Brand",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apple Updated\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/brands/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "brands", "1"] }
+          }
+        },
+        {
+          "name": "Delete Brand",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/brands/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "brands", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/products", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products"] }
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/products/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products", "1"] }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPhone 15\",\n  \"description\": \"Latest iPhone\",\n  \"price\": 1000,\n  \"quantity\": 10,\n  \"category_id\": 1,\n  \"brand_id\": 1,\n  \"slug\": \"iphone-15\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/products", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPhone 15 Pro\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/products/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products", "1"] }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/products/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/order/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", ""] }
+          }
+        },
+        {
+          "name": "Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/order/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", "1"] }
+          }
+        },
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"total_amount\": 2000,\n  \"status\": \"pending\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/order/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", ""] }
+          }
+        },
+        {
+          "name": "Update Order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/order/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", "1"] }
+          }
+        },
+        {
+          "name": "Delete Order",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/order/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", "1"] }
+          }
+        },
+        {
+          "name": "Get Orders By User ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/order/user/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", "user", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address",
+      "item": [
+        {
+          "name": "Get All Addresses",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/addresses", "host": ["{{baseUrl}}"], "path": ["api", "v1", "addresses"] }
+          }
+        },
+        {
+          "name": "Get Address By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/addresses/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "addresses", "1"] }
+          }
+        },
+        {
+          "name": "Create Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Nguyen Van B\",\n  \"phone\": \"0912345678\",\n  \"address_line1\": \"123 Main St\",\n  \"city\": \"Hanoi\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/addresses", "host": ["{{baseUrl}}"], "path": ["api", "v1", "addresses"] }
+          }
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Ho Chi Minh\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/addresses/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "addresses", "1"] }
+          }
+        },
+        {
+          "name": "Delete Address",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/addresses/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "addresses", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/cart", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart"] }
+          }
+        },
+        {
+          "name": "Add Item To Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/items", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart", "items"] }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/items/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart", "items", "1"] }
+          }
+        },
+        {
+          "name": "Remove Item From Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/cart/items/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart", "items", "1"] }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/cart?cart_id=1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart"], "query": [{ "key": "cart_id", "value": "1" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": 1,\n  \"amount\": 2000,\n  \"method\": \"cod\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/payments", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments"] }
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/1/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "1", "status"] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" }
+  ]
+}

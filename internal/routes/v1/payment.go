@@ -3,6 +3,8 @@ package v1
 import (
 	"api_techstore/internal/container"
 	"api_techstore/internal/handlers"
+	"api_techstore/internal/middlewares"
+	"api_techstore/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,9 +13,12 @@ func SetupPaymentRoutes(r *gin.RouterGroup, public *gin.RouterGroup, ctn *contai
 	// Protected routes (require auth)
 	payments := r.Group("/payments")
 	{
-		payments.POST("", func(ctx *gin.Context) {
-			handlers.CreatePayment(ctx, ctn)
-		})
+		payments.POST("",
+			middlewares.RequireRole("user", "admin"),
+			middlewares.ValidateRequest(&models.PaymentCreateRequest{}),
+			func(ctx *gin.Context) {
+				handlers.CreatePayment(ctx, ctn)
+			})
 		payments.GET("/:orderId/status", func(ctx *gin.Context) {
 			handlers.GetPaymentStatus(ctx, ctn)
 		})

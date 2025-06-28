@@ -4,6 +4,7 @@ import (
 	"api_techstore/internal/cache"
 	"api_techstore/internal/container"
 	"api_techstore/internal/database"
+	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
 	"api_techstore/internal/services"
 	"api_techstore/pkg/jwt"
@@ -16,26 +17,22 @@ import (
 	"gorm.io/gorm"
 )
 
-func Login(c *gin.Context, di *container.Container) {
-	// Lấy dữ liệu từ request body
-	var loginReq models.LoginReq
-	if err := c.ShouldBindJSON(&loginReq); err != nil || loginReq.Email == "" || loginReq.Password == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body or missing email/password")
-		return
-	}
+func Login(c *gin.Context, ctn *container.Container) {
+	// Lấy validated model từ middleware
+	req := middlewares.GetValidatedModel(c).(*models.LoginReq)
 	// Kiểm tra người dùng
-	user, err := services.Login(di.DB, loginReq.Email, loginReq.Password)
-	if err != nil {	
+	user, err := services.Login(ctn.DB, req.Email, req.Password)
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			response.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")	
+			response.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
 			return
 		}
 		response.ErrorResponse(c, http.StatusInternalServerError, "Error checking user credentials: "+err.Error())
-		return	
-	}	
+		return
+	}
 
 	// Create new JWT Config
-	jwtCfg := di.JWTConfig
+	jwtCfg := ctn.JWTConfig
 
 	// Generate Tokens
 	accessToken, err := jwtCfg.GenerateAccessRedisToken(user.ID, user.Role)
@@ -64,7 +61,7 @@ func Login(c *gin.Context, di *container.Container) {
 	}
 
 	// Connect to Redis //
-	redisClient := cache.NewRedisClient(di.Redis)
+	redisClient := cache.NewRedisClient(ctn.Redis)
 
 	// Save tokens to Redis
 	err = redisClient.SetToken(c.Request.Context(), accessClaims.AccessUUID, strconv.FormatUint(uint64(user.ID), 10), jwtCfg.AccessTokenDuration)
@@ -94,18 +91,10 @@ func Login(c *gin.Context, di *container.Container) {
 }
 
 func Register(c *gin.Context, di *container.Container) {
-	var userReq models.LoginReq
-	if err := c.ShouldBindJSON(&userReq); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
-		return
-	}
-	// Validate dữ liệu
-	if userReq.Email == "" || userReq.Password == "" {
-		response.ErrorResponse(c, http.StatusBadRequest, "Email and password are required")
-		return
-	}
+	// Lấy validated model từ middleware
+	req := middlewares.GetValidatedModel(c).(*models.RegisterReq)
 	// Kiểm tra email đã tồn tại chưa
-	users, err := services.GetUserByEmail(di.DB, userReq.Email)
+	users, err := services.GetUserByEmail(di.DB, req.Email)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, "Error checking email: "+err.Error())
 		return
@@ -114,7 +103,26 @@ func Register(c *gin.Context, di *container.Container) {
 		response.ErrorResponse(c, http.StatusConflict, "Email already exists")
 		return
 	}
-
+	// Hash password
+	hashedPassword, err := services.HashPassword(req.Password)
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+	user := models.User{
+		FullName:     req.FullName,
+		Email:        req.Email,
+		Phone:        req.Phone,
+		PasswordHash: hashedPassword,
+		Role:         req.Role,
+		IsActive:     req.IsActive,
+	}
+	err = services.CreateUser(di.DB, user)
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	response.SuccessResponse(c, http.StatusCreated, "User registered successfully", nil)
 }
 
 func Logout(c *gin.Context, di *container.Container) {
@@ -291,5 +299,3 @@ func ClearRedis(c *gin.Context) {
 		"refresh_tokens_before": refreshCount,
 	})
 }
-
-

@@ -2,10 +2,10 @@ package models
 
 type Brand struct {
 	Base
-	Name        string `json:"name" gorm:"column:name"`
-	Description string `json:"description" gorm:"column:description"`
-	IsActive    bool   `json:"is_active" gorm:"column:is_active" default:"false"`
-	Slug        string `json:"slug" gorm:"column:slug"`
+	Name        string `gorm:"column:name" json:"name"`
+	Description string `gorm:"column:description" json:"description"`
+	IsActive    bool   `gorm:"column:is_active;default:false" json:"is_active"`
+	Slug        string `gorm:"column:slug" json:"slug"`
 
 	// Relations
 	Products []Product `json:"products,omitempty" gorm:"foreignKey:BrandID"`

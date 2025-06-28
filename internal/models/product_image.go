@@ -2,12 +2,11 @@ package models
 
 type ProductImage struct {
 	Base
-	ProductID uint   `json:"product_id" gorm:"not null"`
-	ImageURL  string `json:"image_url" gorm:"not null"`
-	IsMain    bool   `json:"is_main" gorm:"default:false"`
-	SortOrder int    `json:"sort_order" gorm:"default:0"`
-	
+	ProductID uint   `gorm:"column:product_id;not null" json:"product_id"`
+	ImageURL  string `gorm:"column:image_url;not null" json:"image_url"`
+	IsMain    bool   `gorm:"column:is_main;default:false" json:"is_main"`
+	SortOrder int    `gorm:"column:sort_order;default:0" json:"sort_order"`
+
 	// Relations
 	Product Product `json:"product,omitempty" gorm:"foreignKey:ProductID"`
 }
-

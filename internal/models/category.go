@@ -2,8 +2,8 @@ package models
 
 type Category struct {
 	Base
-	Name string `gorm:"column:name;type:varchar(100);not null;unique"`
-	Slug string `gorm:"column:slug;type:varchar(100);not null;unique"`
+	Name string `gorm:"column:name;type:varchar(100);not null;unique" json:"name"`
+	Slug string `gorm:"column:slug;type:varchar(100);not null;unique" json:"slug"`
 
 	// Relations
 	Products []Product `json:"products,omitempty" gorm:"foreignKey:CategoryID"`
