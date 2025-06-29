@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+/tmp
+/main.exe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test files
+*.test
+*.out
+test/
+
+# Documentation
+docs/swagger.json
+docs/swagger.yaml
+guides/
+
+# Development files
+.air.toml
+
+# Empty directories
+deployments/
+monitoring/
+
+# Environment files (except example)
+.env
+.env.*
+!.env.example
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# README
+README.md 

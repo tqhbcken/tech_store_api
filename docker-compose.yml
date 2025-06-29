@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Database PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: techstore_db
+    environment:
+      POSTGRES_DB: techstore
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: techstore_redis
+    ports:
+      - "6379:6379"
+
+  # TechStore API
+  api:
+    build: .
+    container_name: techstore_api
+    environment:
+      # Database config
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: techstore
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      DB_SSL_MODE: disable
+      
+      # Redis config
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      
+      # JWT config
+      JWT_SECRET_KEY: my-secret-key
+      JWT_ACCESS_TOKEN_DURATION: 15m
+      JWT_REFRESH_TOKEN_DURATION: 7d
+      
+      # Server config
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+
+networks:
+  techstore_network:
+    driver: bridge 
