@@ -43,6 +43,12 @@ func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
 	if err := s.db.Create(&order).Error; err != nil {
 		return models.Order{}, err
 	}
+
+	// Preload related data after creation
+	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").First(&order, order.ID).Error; err != nil {
+		return models.Order{}, err
+	}
+
 	return order, nil
 }
 
@@ -54,6 +60,12 @@ func (s *orderService) UpdateOrder(id string, order models.Order) (models.Order,
 	if err := s.db.Save(&order).Error; err != nil {
 		return models.Order{}, err
 	}
+
+	// Preload related data after update
+	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").First(&order, id).Error; err != nil {
+		return models.Order{}, err
+	}
+
 	return order, nil
 }
 

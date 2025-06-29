@@ -57,10 +57,10 @@ type SwaggerBrand struct {
 // @Description Order model for Swagger documentation
 type SwaggerOrder struct {
 	SwaggerBase
-	UserID            int     `json:"user_id" example:"1"`
+	UserID            uint    `json:"user_id" example:"1"`
 	TotalAmount       float64 `json:"total_amount" example:"1999.99"`
 	Status            string  `json:"status" example:"pending"` // pending, confirmed, processing, shipped, delivered, cancelled
-	ShippingAddressID *int    `json:"shipping_address_id,omitempty" example:"1"`
+	ShippingAddressID *uint   `json:"shipping_address_id,omitempty" example:"1"`
 }
 
 // SwaggerAddress represents address model for Swagger documentation

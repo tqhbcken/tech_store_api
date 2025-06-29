@@ -36,6 +36,11 @@ func (s *addressService) GetAddressByID(id uint) (models.Address, error) {
 
 func (s *addressService) CreateAddress(address models.Address) (models.Address, error) {
 	err := s.db.Create(&address).Error
+	if err != nil {
+		return models.Address{}, err
+	}
+	
+	err = s.db.Preload("User").First(&address, address.ID).Error
 	return address, err
 }
 

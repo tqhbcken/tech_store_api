@@ -6,7 +6,7 @@ type User struct {
 	FullName     string `gorm:"column:full_name" json:"full_name"`
 	Email        string `gorm:"column:email" json:"email"`
 	Phone        string `gorm:"column:phone" json:"phone"`
-	PasswordHash string `gorm:"column:password_hash;not null" json:"password_hash"`
+	PasswordHash string `gorm:"column:password_hash;not null" json:"-"`
 	Role         string `gorm:"column:role;default:user" json:"role"`
 	IsActive     bool   `gorm:"column:is_active;default:false" json:"is_active"`
 

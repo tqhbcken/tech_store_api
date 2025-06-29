@@ -13,7 +13,7 @@ type Address struct {
 	IsDefault    bool   `gorm:"column:is_default;default:false" json:"is_default"`
 
 	// Relations
-	User   User    `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	User   User    `json:"-" gorm:"foreignKey:UserID"`
 	Orders []Order `json:"orders,omitempty" gorm:"foreignKey:ShippingAddressID"`
 }
 
