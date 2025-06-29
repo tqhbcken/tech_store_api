@@ -8,6 +8,7 @@ import (
 
 type AddressService interface {
 	GetAllAddresses(userID uint) ([]models.Address, error)
+	GetAllAddressesAdmin() ([]models.Address, error)
 	GetAddressByID(id uint) (models.Address, error)
 	CreateAddress(address models.Address) (models.Address, error)
 	UpdateAddress(id uint, address models.Address) (models.Address, error)
@@ -28,6 +29,12 @@ func (s *addressService) GetAllAddresses(userID uint) ([]models.Address, error) 
 	return addresses, err
 }
 
+func (s *addressService) GetAllAddressesAdmin() ([]models.Address, error) {
+	var addresses []models.Address
+	err := s.db.Preload("User").Find(&addresses).Error
+	return addresses, err
+}
+
 func (s *addressService) GetAddressByID(id uint) (models.Address, error) {
 	var address models.Address
 	err := s.db.Preload("User").First(&address, id).Error
@@ -39,7 +46,7 @@ func (s *addressService) CreateAddress(address models.Address) (models.Address, 
 	if err != nil {
 		return models.Address{}, err
 	}
-	
+
 	err = s.db.Preload("User").First(&address, address.ID).Error
 	return address, err
 }

@@ -34,4 +34,16 @@ func SetupAddressRoutes(r *gin.RouterGroup, ctn *container.Container) {
 			handlers.DeleteAddress(ctx, ctn)
 		})
 	}
+
+	// Admin routes for managing all addresses
+	adminAddresses := r.Group("/admin/addresses")
+	adminAddresses.Use(middlewares.RequireRole("admin"))
+	{
+		adminAddresses.GET("", func(ctx *gin.Context) {
+			handlers.GetAllAddressesAdmin(ctx, ctn)
+		})
+		adminAddresses.GET("/user/:userId", func(ctx *gin.Context) {
+			handlers.GetAddressesByUserID(ctx, ctn)
+		})
+	}
 }

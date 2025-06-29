@@ -213,3 +213,56 @@ func DeleteAddress(c *gin.Context, ctn *container.Container) {
 
 	response.SuccessResponse(c, http.StatusOK, "Address deleted successfully", nil)
 }
+
+// GetAllAddressesAdmin godoc
+// @Summary Get all addresses (Admin only)
+// @Description Retrieve all addresses from all users (Admin only)
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response{data=[]models.SwaggerAddress} "All addresses retrieved successfully"
+// @Failure 401 {object} response.Response "Unauthorized"
+// @Failure 403 {object} response.Response "Forbidden"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /admin/addresses [get]
+func GetAllAddressesAdmin(c *gin.Context, ctn *container.Container) {
+	addresses, err := ctn.AddressService.GetAllAddressesAdmin()
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+
+	response.SuccessResponse(c, http.StatusOK, "All addresses retrieved successfully", addresses)
+}
+
+// GetAddressesByUserID godoc
+// @Summary Get addresses by user ID (Admin only)
+// @Description Retrieve all addresses for a specific user (Admin only)
+// @Tags addresses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "User ID"
+// @Success 200 {object} response.Response{data=[]models.SwaggerAddress} "Addresses retrieved successfully"
+// @Failure 400 {object} response.Response "Invalid user ID"
+// @Failure 401 {object} response.Response "Unauthorized"
+// @Failure 403 {object} response.Response "Forbidden"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Router /admin/addresses/user/{userId} [get]
+func GetAddressesByUserID(c *gin.Context, ctn *container.Container) {
+	userIDStr := c.Param("userId")
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		response.NewErrorResponse(c, apperrors.NewValidationFailed("Invalid user ID"))
+		return
+	}
+
+	addresses, err := ctn.AddressService.GetAllAddresses(uint(userID))
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+
+	response.SuccessResponse(c, http.StatusOK, "Addresses retrieved successfully", addresses)
+}
