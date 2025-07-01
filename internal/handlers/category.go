@@ -122,7 +122,7 @@ func UpdateCategory(c *gin.Context, ctn *container.Container) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Category ID"
-// @Success 204 {object} response.Response "Category deleted successfully"
+// @Success 200 {object} response.Response "Category deleted successfully"
 // @Failure 401 {object} response.Response "Unauthorized"
 // @Failure 403 {object} response.Response "Forbidden"
 // @Failure 500 {object} response.Response "Internal server error"
@@ -135,5 +135,5 @@ func DeleteCategory(c *gin.Context, ctn *container.Container) {
 		return
 	}
 
-	response.SuccessResponse(c, http.StatusNoContent, "Category deleted successfully", nil)
+	response.SuccessResponse(c, http.StatusOK, "Category deleted successfully", nil)
 }

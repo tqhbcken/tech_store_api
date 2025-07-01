@@ -145,7 +145,7 @@ func UpdateProduct(c *gin.Context, ctn *container.Container) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Product ID"
-// @Success 204 {object} response.Response "Product deleted successfully"
+// @Success 200 {object} response.Response "Product deleted successfully"
 // @Failure 401 {object} response.Response "Unauthorized"
 // @Failure 403 {object} response.Response "Forbidden"
 // @Failure 404 {object} response.Response "Product not found"
@@ -162,5 +162,5 @@ func DeleteProduct(c *gin.Context, ctn *container.Container) {
 		response.DatabaseErrorResponse(c, err)
 		return
 	}
-	response.SuccessResponse(c, http.StatusNoContent, "Product deleted successfully", nil)
+	response.SuccessResponse(c, http.StatusOK, "Product deleted successfully", nil)
 }

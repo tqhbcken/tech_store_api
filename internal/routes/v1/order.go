@@ -10,7 +10,7 @@ import (
 )
 
 func SetupOrderRoute(route *gin.RouterGroup, ctn *container.Container) {
-	order := route.Group("/order")
+	order := route.Group("/orders")
 	{
 		order.GET("/", func(c *gin.Context) {
 			handlers.GetAllOrders(c, ctn)

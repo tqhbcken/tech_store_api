@@ -21,8 +21,8 @@ type OrderCreateRequest struct {
 }
 
 type OrderUpdateRequest struct {
-	UserID            uint    `json:"user_id" binding:"omitempty,gt=0"`
-	TotalAmount       float64 `json:"total_amount" binding:"omitempty,gt=0"`
-	Status            string  `json:"status" binding:"omitempty,oneof=pending confirmed processing shipped delivered cancelled"`
-	ShippingAddressID *uint   `json:"shipping_address_id" binding:"omitempty"`
+	// UserID            uint    `json:"user_id" binding:"omitempty,gt=0"`           // Không cho phép thay đổi user_id
+	// TotalAmount       float64 `json:"total_amount" binding:"omitempty,gt=0"`     // Không cho phép thay đổi total_amount
+	Status            string `json:"status" binding:"omitempty,oneof=pending confirmed processing shipped delivered cancelled"`
+	ShippingAddressID *uint  `json:"shipping_address_id" binding:"omitempty"`
 }

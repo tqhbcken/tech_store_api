@@ -153,13 +153,13 @@ func CreateOrder(c *gin.Context, ctn *container.Container) {
 
 // UpdateOrder godoc
 // @Summary Update order
-// @Description Update order information (User/Admin only)
+// @Description Update order information (User/Admin only) - Only status and shipping_address_id can be updated
 // @Tags orders
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Order ID"
-// @Param request body models.OrderUpdateRequest true "Order update data"
+// @Param request body models.OrderUpdateRequest true "Order update data (only status and shipping_address_id)"
 // @Success 200 {object} response.Response{data=models.SwaggerOrder} "Order updated successfully"
 // @Failure 400 {object} response.Response "Invalid request"
 // @Failure 401 {object} response.Response "Unauthorized"
@@ -170,8 +170,8 @@ func CreateOrder(c *gin.Context, ctn *container.Container) {
 func UpdateOrder(c *gin.Context, ctn *container.Container) {
 	id := c.Param("id")
 
-	// Check if order exists
-	_, err := ctn.OrderService.GetOrderByID(id)
+	// Check if order exists and get current order
+	currentOrder, err := ctn.OrderService.GetOrderByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			response.NotFoundResponse(c, "Order")
@@ -183,11 +183,22 @@ func UpdateOrder(c *gin.Context, ctn *container.Container) {
 
 	req := middlewares.GetValidatedModel(c).(*models.OrderUpdateRequest)
 
+	// Chỉ update các trường được phép, giữ nguyên user_id và total_amount
 	order := models.Order{
-		UserID:            req.UserID,
-		TotalAmount:       req.TotalAmount,
-		Status:            req.Status,
-		ShippingAddressID: req.ShippingAddressID,
+		UserID:            currentOrder.UserID,      // Giữ nguyên user_id hiện tại
+		TotalAmount:       currentOrder.TotalAmount, // Giữ nguyên total_amount hiện tại
+		Status:            req.Status,               // Update status nếu có
+		ShippingAddressID: req.ShippingAddressID,    // Update shipping_address_id nếu có
+	}
+
+	// Nếu không có status trong request, giữ nguyên status hiện tại
+	if order.Status == "" {
+		order.Status = currentOrder.Status
+	}
+
+	// Nếu không có shipping_address_id trong request, giữ nguyên hiện tại
+	if order.ShippingAddressID == nil {
+		order.ShippingAddressID = currentOrder.ShippingAddressID
 	}
 
 	updatedOrder, err := ctn.OrderService.UpdateOrder(id, order)

@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "TechStore API Full",
+    "name": "TechStore API Full (Updated)",
     "_postman_id": "techstore-api-full-collection",
-    "description": "Full collection for testing all endpoints of TechStore API",
+    "description": "Full collection for testing all endpoints of TechStore API (updated to match codebase)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -46,7 +46,7 @@
           }
         },
         {
-          "name": "Logout",
+          "name": "Logout (user/admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -63,7 +63,7 @@
       ]
     },
     {
-      "name": "User",
+      "name": "User (admin only)",
       "item": [
         {
           "name": "Get All Users",
@@ -120,7 +120,7 @@
           }
         },
         {
-          "name": "Get User Profile",
+          "name": "Get User Profile (user/admin)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
@@ -130,7 +130,7 @@
       ]
     },
     {
-      "name": "Category",
+      "name": "Category (admin: create/update/delete)",
       "item": [
         {
           "name": "Get All Categories",
@@ -149,7 +149,7 @@
           }
         },
         {
-          "name": "Create Category",
+          "name": "Create Category (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -164,7 +164,7 @@
           }
         },
         {
-          "name": "Update Category",
+          "name": "Update Category (admin)",
           "request": {
             "method": "PUT",
             "header": [
@@ -179,7 +179,7 @@
           }
         },
         {
-          "name": "Delete Category",
+          "name": "Delete Category (admin)",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
@@ -189,7 +189,7 @@
       ]
     },
     {
-      "name": "Brand",
+      "name": "Brand (admin: create/update/delete)",
       "item": [
         {
           "name": "Get All Brands",
@@ -208,7 +208,7 @@
           }
         },
         {
-          "name": "Create Brand",
+          "name": "Create Brand (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -223,7 +223,7 @@
           }
         },
         {
-          "name": "Update Brand",
+          "name": "Update Brand (admin)",
           "request": {
             "method": "PUT",
             "header": [
@@ -238,7 +238,7 @@
           }
         },
         {
-          "name": "Delete Brand",
+          "name": "Delete Brand (admin)",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
@@ -248,7 +248,7 @@
       ]
     },
     {
-      "name": "Product",
+      "name": "Product (admin: create/update/delete)",
       "item": [
         {
           "name": "Get All Products",
@@ -267,7 +267,7 @@
           }
         },
         {
-          "name": "Create Product",
+          "name": "Create Product (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -282,7 +282,7 @@
           }
         },
         {
-          "name": "Update Product",
+          "name": "Update Product (admin)",
           "request": {
             "method": "PUT",
             "header": [
@@ -297,17 +297,40 @@
           }
         },
         {
-          "name": "Delete Product",
+          "name": "Delete Product (admin)",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": { "raw": "{{baseUrl}}/api/v1/products/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products", "1"] }
           }
+        },
+        {
+          "name": "Add Product Image (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_url\": \"https://example.com/image.jpg\",\n  \"is_main\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/products/1/images", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products", "1", "images"] }
+          }
+        },
+        {
+          "name": "Delete Product Image (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/products/1/images/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "products", "1", "images", "1"] }
+          }
         }
       ]
     },
     {
-      "name": "Order",
+      "name": "Order (user/admin)",
       "item": [
         {
           "name": "Get All Orders",
@@ -326,7 +349,7 @@
           }
         },
         {
-          "name": "Create Order",
+          "name": "Create Order (user/admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -335,13 +358,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"user_id\": 1,\n  \"total_amount\": 2000,\n  \"status\": \"pending\"\n}"
+              "raw": "{\n  \"shipping_address_id\": 1\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/v1/order/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", ""] }
           }
         },
         {
-          "name": "Update Order",
+          "name": "Update Order (user/admin)",
           "request": {
             "method": "PUT",
             "header": [
@@ -350,13 +373,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"completed\"\n}"
+              "raw": "{\n  \"status\": \"completed\",\n  \"shipping_address_id\": 1\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/v1/order/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "order", "1"] }
           }
         },
         {
-          "name": "Delete Order",
+          "name": "Delete Order (user/admin)",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
@@ -364,7 +387,7 @@
           }
         },
         {
-          "name": "Get Orders By User ID",
+          "name": "Get Orders By User ID (user/admin)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
@@ -374,7 +397,7 @@
       ]
     },
     {
-      "name": "Address",
+      "name": "Address (user/admin)",
       "item": [
         {
           "name": "Get All Addresses",
@@ -433,7 +456,28 @@
       ]
     },
     {
-      "name": "Cart",
+      "name": "Address Admin (admin only)",
+      "item": [
+        {
+          "name": "Get All Addresses (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/addresses", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "addresses"] }
+          }
+        },
+        {
+          "name": "Get Addresses By User ID (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/addresses/user/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "addresses", "user", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart (user/admin)",
       "item": [
         {
           "name": "Get Cart",
@@ -486,13 +530,13 @@
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/cart?cart_id=1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart"], "query": [{ "key": "cart_id", "value": "1" }] }
+            "url": { "raw": "{{baseUrl}}/api/v1/cart", "host": ["{{baseUrl}}"], "path": ["api", "v1", "cart"] }
           }
         }
       ]
     },
     {
-      "name": "Payment",
+      "name": "Payment (user/admin)",
       "item": [
         {
           "name": "Create Payment",
@@ -515,6 +559,22 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": { "raw": "{{baseUrl}}/api/v1/payments/1/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "1", "status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Callback (public)",
+      "item": [
+        {
+          "name": "Payment Callback Notify",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/payments-callback/notify?order_id=1&status=completed", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments-callback", "notify"], "query": [
+              { "key": "order_id", "value": "1" },
+              { "key": "status", "value": "completed" }
+            ] }
           }
         }
       ]
