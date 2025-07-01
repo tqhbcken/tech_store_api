@@ -4,6 +4,7 @@ import (
 	"api_techstore/internal/container"
 	"api_techstore/internal/middlewares"
 	"api_techstore/internal/models"
+	apperrors "api_techstore/pkg/errors"
 	"api_techstore/pkg/response"
 	"net/http"
 
@@ -66,12 +67,47 @@ func GetOrderByID(c *gin.Context, ctn *container.Container) {
 // @Failure 500 {object} response.Response "Internal server error"
 // @Router /order [post]
 func CreateOrder(c *gin.Context, ctn *container.Container) {
+	// Lấy user_id từ middleware (context)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.NewErrorResponse(c, apperrors.NewUnauthorized())
+		return
+	}
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		response.HandleError(c, apperrors.New(apperrors.ErrCodeInvalidInput, "Invalid user id type", http.StatusInternalServerError))
+		return
+	}
+
+	// Lấy validated model (không còn user_id)
 	req := middlewares.GetValidatedModel(c).(*models.OrderCreateRequest)
 
+	// get user's cart
+	cart, err := ctn.CartService.GetCartByUserID(userIDUint)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+
+	// Lấy các item trong cart (đã preload Product)
+	items, err := ctn.CartItemService.GetItemsByCartID(cart.ID)
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+
+	totalAmount := 0.0
+	for _, item := range items {
+		if item.Product.ID == 0 {
+			response.ErrorResponse(c, http.StatusBadRequest, "Product not found for cart item")
+			return
+		}
+		totalAmount += float64(item.Quantity) * item.Product.Price
+	}
+
 	order := models.Order{
-		UserID:            req.UserID,
-		TotalAmount:       req.TotalAmount,
-		Status:            req.Status,
+		UserID:            userIDUint,
+		TotalAmount:       totalAmount,
 		ShippingAddressID: req.ShippingAddressID,
 	}
 
@@ -86,7 +122,33 @@ func CreateOrder(c *gin.Context, ctn *container.Container) {
 		return
 	}
 
-	response.SuccessResponse(c, http.StatusCreated, "Order created successfully", newOrder)
+	// Tạo order_items từ cart_items
+	var orderItems []models.OrderItem
+	for _, item := range items {
+		orderItems = append(orderItems, models.OrderItem{
+			OrderID:   newOrder.ID,
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			UnitPrice: item.Product.Price,
+		})
+	}
+	if len(orderItems) > 0 {
+		db := ctn.DB
+		if err := db.Create(&orderItems).Error; err != nil {
+			response.DatabaseErrorResponse(c, err)
+			return
+		}
+	}
+
+	// Reload order để trả về kèm order_items
+	var orderWithItems models.Order
+	db := ctn.DB
+	if err := db.Preload("OrderItems").First(&orderWithItems, newOrder.ID).Error; err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+
+	response.SuccessResponse(c, http.StatusCreated, "Order created successfully", orderWithItems)
 }
 
 // UpdateOrder godoc

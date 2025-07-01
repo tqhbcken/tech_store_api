@@ -124,6 +124,17 @@ func AddItemToCart(c *gin.Context, ctn *container.Container) {
 	// Get validated model from middleware
 	req := middlewares.GetValidatedModel(c).(*models.CartAddItemRequest)
 
+	// Check product stock before adding to cart
+	product, err := ctn.ProductService.GetProductById(strconv.FormatUint(uint64(req.ProductID), 10))
+	if err != nil {
+		response.DatabaseErrorResponse(c, err)
+		return
+	}
+	if req.Quantity > product.Quantity {
+		response.ErrorResponse(c, http.StatusBadRequest, "Not enough product in stock")
+		return
+	}
+
 	cartItem := models.CartItem{
 		CartID:    cart.ID,
 		ProductID: req.ProductID,

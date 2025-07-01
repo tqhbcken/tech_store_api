@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"api_techstore/internal/cache"
-	"api_techstore/internal/database"
+	"api_techstore/internal/container"
 	apperrors "api_techstore/pkg/errors"
 	jwtpkg "api_techstore/pkg/jwt"
 	"api_techstore/pkg/response"
@@ -14,7 +14,7 @@ import (
 )
 
 // check jwt in request header
-func JWTAuthMiddleware(config *jwtpkg.JWTConfig) gin.HandlerFunc {
+func JWTAuthMiddleware(ctn *container.Container) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
 		if authHeader == "" {
@@ -31,7 +31,7 @@ func JWTAuthMiddleware(config *jwtpkg.JWTConfig) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := config.ValidateAccessRedisToken(parts[1])
+		claims, err := ctn.JWTConfig.ValidateAccessRedisToken(parts[1])
 		if err != nil {
 			var appErr *apperrors.AppError
 			if err == jwtpkg.ErrExpiredToken {
@@ -45,13 +45,7 @@ func JWTAuthMiddleware(config *jwtpkg.JWTConfig) gin.HandlerFunc {
 		}
 
 		// Check if token exists in Redis
-		redisConn, err := database.InitRedis()
-		if err != nil {
-			response.RedisErrorResponse(ctx, err)
-			ctx.Abort()
-			return
-		}
-		redisClient := cache.NewRedisClient(redisConn)
+		redisClient := cache.NewRedisClient(ctn.Redis)
 		isValid, err := redisClient.IsValidToken(ctx.Request.Context(), claims.AccessUUID)
 		if err != nil || !isValid {
 			response.NewErrorResponse(ctx, apperrors.NewTokenRevoked())

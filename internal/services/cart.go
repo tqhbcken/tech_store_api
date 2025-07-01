@@ -22,7 +22,7 @@ func NewCartService(db *gorm.DB) CartService {
 }
 
 func (s *cartService) CreateCart(cart models.Cart) (models.Cart, error) {
-	err := s.db.Create(&cart).Error
+	err := s.db.Preload("Items").Create(&cart).Error
 	return cart, err
 }
 

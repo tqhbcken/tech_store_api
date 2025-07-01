@@ -193,9 +193,18 @@ func Logout(c *gin.Context, di *container.Container) {
 	redisClient := cache.NewRedisClient(di.Redis)
 
 	// Delete tokens from Redis
-	_ = redisClient.DeleteToken(c.Request.Context(), accessUUID.(string))
+	err = redisClient.DeleteToken(c.Request.Context(), accessUUID.(string))
+	if err != nil {
+		response.RedisErrorResponse(c, err)
+		return
+	}
+
 	if refreshClaims != nil {
-		_ = redisClient.DeleteToken(c.Request.Context(), refreshClaims.RefreshUUID)
+		err = redisClient.DeleteToken(c.Request.Context(), refreshClaims.RefreshUUID)
+		if err != nil {
+			response.RedisErrorResponse(c, err)
+			return
+		}
 	}
 
 	response.SuccessResponse(c, http.StatusOK, "Logout successful", nil)

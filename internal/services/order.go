@@ -25,7 +25,7 @@ func NewOrderService(db *gorm.DB) OrderService {
 
 func (s *orderService) GetAllOrders() ([]models.Order, error) {
 	var orders []models.Order
-	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").Find(&orders).Error; err != nil {
+	if err := s.db.Preload("User").Preload("OrderItems.Product").Preload("ShippingAddress").Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil

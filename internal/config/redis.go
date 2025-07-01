@@ -1,7 +1,7 @@
 package config
 
 import (
-	"os"	
+	"os"
 	"strconv"
 )
 
@@ -12,8 +12,17 @@ type RedisConfig struct {
 }
 
 func GetRedisConfig() RedisConfig {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		host = "localhost" // Default host
+	}
+	port := os.Getenv("REDIS_PORT")
+	if port == "" {
+		port = "6379" // Default port
+	}
+
 	return RedisConfig{
-		Addr:     os.Getenv("REDIS_ADDRESS"),
+		Addr:     host + ":" + port,
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       getRedisDB(),
 	}

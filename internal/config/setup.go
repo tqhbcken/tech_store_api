@@ -1,14 +1,14 @@
 package config
 
 import (
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
-func ServerInit() {
-	r := gin.Default()
-
+func ServerInit(r *gin.Engine) {
 	LoadEnvVar()
 	host := os.Getenv("HOST")
 	if host == "" {
@@ -19,6 +19,11 @@ func ServerInit() {
 		port = "8080"
 	}
 
+	address := fmt.Sprintf("%s:%s", host, port)
+	log.Printf("Server starting on %s", address)
+
 	// run server
-	r.Run(host + ":" + port)
+	if err := r.Run(address); err != nil {
+		log.Fatalf("Failed to start server on %s: %v", address, err)
+	}
 }

@@ -14,10 +14,10 @@ type Order struct {
 }
 
 type OrderCreateRequest struct {
-	UserID            uint    `json:"user_id" binding:"required,gt=0"`
-	TotalAmount       float64 `json:"total_amount" binding:"required,gt=0"`
-	Status            string  `json:"status" binding:"omitempty,oneof=pending confirmed processing shipped delivered cancelled" default:"pending"`
-	ShippingAddressID *uint   `json:"shipping_address_id" binding:"required"`
+	// UserID            uint    `json:"user_id" binding:"required,gt=0"`
+	// TotalAmount       float64 `json:"total_amount" binding:"required,gt=0"`
+	Status            string `json:"status" binding:"omitempty" default:"pending"`
+	ShippingAddressID *uint  `json:"shipping_address_id" binding:"required"`
 }
 
 type OrderUpdateRequest struct {

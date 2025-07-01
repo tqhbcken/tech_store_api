@@ -10,16 +10,30 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d techstore"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - techstore_network
 
   # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: techstore_redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - techstore_network
 
   # TechStore API
   api:
@@ -45,13 +59,15 @@ services:
       JWT_ACCESS_TOKEN_DURATION: 15m
       JWT_REFRESH_TOKEN_DURATION: 7d
       
-      # Server config
-      SERVER_PORT: 8080
     ports:
-      - "8080:8080"
+      - "8082:8080"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - techstore_network
 
 volumes:
   postgres_data:

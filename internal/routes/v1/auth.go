@@ -11,30 +11,26 @@ import (
 
 func SetupAuthRoute(r *gin.RouterGroup, ctn *container.Container) {
 
-	
-
 	auth := r.Group("/auth")
 	{
-		auth.POST("/register", 
-		middlewares.ValidateRequest(&models.RegisterReq{}),
-		func(ctx *gin.Context) {
-			handlers.Register(ctx, ctn)
-		})
-		auth.POST("/login", 
-		middlewares.ValidateRequest(&models.LoginReq{}),
-		func(ctx *gin.Context) {
-			handlers.Login(ctx, ctn)
-		})
-		auth.POST("/logout", middlewares.JWTAuthMiddleware(ctn.JWTConfig), func(ctx *gin.Context) {
-			handlers.Logout(ctx, ctn)
-		})
+		auth.POST("/register",
+			middlewares.ValidateRequest(&models.RegisterReq{}),
+			func(ctx *gin.Context) {
+				handlers.Register(ctx, ctn)
+			})
+		auth.POST("/login",
+			middlewares.ValidateRequest(&models.LoginReq{}),
+			func(ctx *gin.Context) {
+				handlers.Login(ctx, ctn)
+			})
+		auth.POST("/logout",
+			middlewares.JWTAuthMiddleware(ctn),
+			func(ctx *gin.Context) {
+				handlers.Logout(ctx, ctn)
+			})
 		auth.POST("/refresh", handlers.RefreshToken)
 
-
-
-
-		
-		//DEBUG 
+		//DEBUG
 		auth.GET("/test-redis", handlers.TestRedis)
 		auth.DELETE("/clear-redis", handlers.ClearRedis)
 

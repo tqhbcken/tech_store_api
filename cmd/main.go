@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api_techstore/internal/config"
 	"api_techstore/internal/container"
 	"api_techstore/internal/models"
 	"api_techstore/internal/routes"
@@ -61,6 +62,5 @@ func main() {
 	// Swagger documentation route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// run server
-	r.Run(":8080")
+	config.ServerInit(r)
 }

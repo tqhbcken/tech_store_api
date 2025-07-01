@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"api_techstore/pkg/jwt"
+	// "api_techstore/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,10 +10,10 @@ type MiddlewareBuilder struct {
 	middlewares []gin.HandlerFunc
 }
 
-func (b *MiddlewareBuilder) WithAuth(jwtConfig *jwt.JWTConfig) *MiddlewareBuilder {
-	b.middlewares = append(b.middlewares, JWTAuthMiddleware(jwtConfig))
-	return b
-}
+// func (b *MiddlewareBuilder) WithAuth(jwtConfig *jwt.JWTConfig) *MiddlewareBuilder {
+// 	b.middlewares = append(b.middlewares, JWTAuthMiddleware())
+// 	return b
+// }
 
 func (b *MiddlewareBuilder) WithRole(roles ...string) *MiddlewareBuilder {
 	b.middlewares = append(b.middlewares, RequireRole(roles...))

@@ -17,10 +17,10 @@ RUN go mod download
 COPY . .
 
 # Build ứng dụng
-RUN go build -o main.exe cmd/main.go
+RUN go build -o main cmd/main.go
 
 # Expose port 8080
 EXPOSE 8080
 
 # Chạy ứng dụng
-CMD ["./main.exe"] 
+CMD ["./main"] 

@@ -4,7 +4,6 @@ import (
 	"api_techstore/internal/container"
 	"api_techstore/internal/middlewares"
 	v1 "api_techstore/internal/routes/v1"
-	"api_techstore/pkg/jwt"
 	"api_techstore/pkg/response"
 	"net/http"
 
@@ -26,7 +25,7 @@ func SetupRouter(r *gin.Engine, ctn *container.Container) {
 
 		// Protected routes (cần JWT)
 		protected := routeV1.Group("")
-		protected.Use(middlewares.JWTAuthMiddleware(jwt.NewJWTConfig()))
+		protected.Use(middlewares.JWTAuthMiddleware(ctn))
 		{
 			v1.SetupUserRoute(protected, ctn)
 			v1.SetupCategoryRoute(protected, ctn)

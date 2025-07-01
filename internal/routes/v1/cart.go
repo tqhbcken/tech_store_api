@@ -12,7 +12,9 @@ import (
 func SetupCartRoutes(r *gin.RouterGroup, ctn *container.Container) {
 	cart := r.Group("/cart")
 	{
-		cart.GET("", middlewares.RequireRole("user", "admin"), func(ctx *gin.Context) {
+		cart.GET("", 
+		middlewares.RequireRole("user", "admin"), 
+		func(ctx *gin.Context) {
 			handlers.GetCart(ctx, ctn)
 		})
 		cart.POST("/items",
@@ -27,7 +29,9 @@ func SetupCartRoutes(r *gin.RouterGroup, ctn *container.Container) {
 			func(ctx *gin.Context) {
 				handlers.UpdateCartItem(ctx, ctn)
 			})
-		cart.DELETE("/items/:itemId", middlewares.RequireRole("user", "admin"), func(ctx *gin.Context) {
+		cart.DELETE("/items/:itemId", 
+		middlewares.RequireRole("user", "admin"), 
+		func(ctx *gin.Context) {
 			handlers.RemoveItemFromCart(ctx, ctn)
 		})
 		cart.DELETE("", 
