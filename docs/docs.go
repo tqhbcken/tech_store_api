@@ -2958,8 +2958,7 @@ const docTemplate = `{
                 "address_line1",
                 "city",
                 "full_name",
-                "phone",
-                "user_id"
+                "phone"
             ],
             "properties": {
                 "address_line1": {
@@ -2990,9 +2989,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 20,
                     "minLength": 8
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },

@@ -21,6 +21,7 @@ func SetupOrderRoute(route *gin.RouterGroup, ctn *container.Container) {
 			func(c *gin.Context) {
 				handlers.CreateOrder(c, ctn)
 			})
+		/// chỗ này cần kiểm tra lại
 		order.GET("/:id", func(c *gin.Context) {
 			handlers.GetOrderByID(c, ctn)
 		})
@@ -35,6 +36,7 @@ func SetupOrderRoute(route *gin.RouterGroup, ctn *container.Container) {
 			func(c *gin.Context) {
 				handlers.DeleteOrder(c, ctn)
 			})
+		/// chỗ này cần kiểm tra lại
 		order.GET("/user/:userId", func(c *gin.Context) {
 			handlers.GetOrdersByUserID(c, ctn)
 		})

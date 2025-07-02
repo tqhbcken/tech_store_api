@@ -18,7 +18,7 @@ type Address struct {
 }
 
 type AddressCreateRequest struct {
-	UserID       uint   `json:"user_id" binding:"required"`
+	// UserID       uint   `json:"user_id" binding:"required"`
 	FullName     string `json:"full_name" binding:"required,min=2,max=100"`
 	Phone        string `json:"phone" binding:"required,min=8,max=20"`
 	AddressLine1 string `json:"address_line1" binding:"required,max=255"`
