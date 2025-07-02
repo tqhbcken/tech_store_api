@@ -57,16 +57,18 @@ func (s *orderService) UpdateOrder(id string, order models.Order) (models.Order,
 	if err := s.db.First(&existingOrder, "id = ?", id).Error; err != nil {
 		return models.Order{}, err
 	}
-	if err := s.db.Save(&order).Error; err != nil {
+
+	// Update only the fields that are provided (non-zero values)
+	if err := s.db.Model(&existingOrder).Updates(order).Error; err != nil {
 		return models.Order{}, err
 	}
 
 	// Preload related data after update
-	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").First(&order, id).Error; err != nil {
+	if err := s.db.Preload("User").Preload("OrderItems").Preload("ShippingAddress").First(&existingOrder, id).Error; err != nil {
 		return models.Order{}, err
 	}
 
-	return order, nil
+	return existingOrder, nil
 }
 
 func (s *orderService) DeleteOrder(id string) error {
