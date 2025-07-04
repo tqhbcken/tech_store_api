@@ -14,37 +14,33 @@ TechStore API là backend RESTful cho hệ thống thương mại điện tử, 
 - Hỗ trợ migration DB thủ công qua file SQL
 
 ## Cài đặt & Chạy nhanh
+
 1. **Clone project:**
    ```bash
    git clone <repo-url>
    cd api_techstore
    ```
-2. **Cài Go modules:**
-   ```bash
-   go mod download
-   ```
-3. **Cấu hình biến môi trường:**
-   - Copy `.env.example` thành `.env` và chỉnh sửa thông tin (DB, Redis, JWT...)
-4. **Tạo database PostgreSQL:**
-   - Có thể dùng Docker Compose: `docker-compose up -d`
-   - DB sẽ tự động tạo qua migration SQL (xem thư mục `internal/database/migrations/`)
-5. **Generate Swagger docs:**
-   ```bash
-   ./scripts/generate-swagger.sh
-   ```
-6. **Chạy ứng dụng:**
-   ```bash
-   go run cmd/main.go
-   ```
-   Hoặc dùng Docker Compose:
+
+2. **Chạy với Docker Compose:**
    ```bash
    docker-compose up --build
    ```
 
+3. **Truy cập:**
+   - API: http://localhost:8082
+   - Swagger UI: http://localhost:8082/swagger/index.html
+
+## Cấu hình Docker Compose
+
+Dự án sử dụng Docker Compose với 3 services:
+
+- **postgres**: PostgreSQL 15 (port 5433)
+- **redis**: Redis 7 (port 6380)  
+- **api**: TechStore API (port 8082)
+
 ## Tài liệu API (Swagger)
-- Truy cập: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
-- Có thể test API trực tiếp, nhập Bearer token để thử các endpoint bảo vệ.
-- Tài liệu luôn được generate từ code thực tế (xem hướng dẫn trong `guides/swagger_integration.md`).
+- **URL**: http://localhost:8082/swagger/index.html
+- Có thể test API trực tiếp, nhập Bearer token để thử các endpoint bảo vệ
 
 ## Cấu trúc thư mục
 ```
@@ -58,36 +54,50 @@ api_techstore/
 ├── monitoring/         # Cấu hình monitoring (ELK, ...)
 ├── deployments/        # File triển khai (nếu có)
 ├── test/               # Unit test, mock, test utils
+├── docker-compose.yml  # Docker Compose configuration
+├── Dockerfile          # Docker image build
 ├── go.mod, go.sum      # Quản lý dependency
 └── README.md           # Tài liệu tổng quan
 ```
 
+## Lệnh Docker Compose hữu ích
+
+```bash
+# Chạy toàn bộ hệ thống
+docker-compose up --build
+
+# Chạy ở background
+docker-compose up -d
+
+# Xem logs
+docker-compose logs -f api
+
+# Dừng tất cả services
+docker-compose down
+
+# Rebuild image
+docker-compose build --no-cache
+```
+
 ## Lưu ý bảo mật & vận hành
-- **Không commit file .env thật lên repo.**
-- JWT secret, DB password, Redis password phải đặt đủ mạnh khi deploy thật.
-- Không expose port database/redis ra ngoài nếu không cần.
-- Đảm bảo chạy migration trước khi chạy app lần đầu.
-- Nếu chạy bằng Docker Compose, code chỉ update khi rebuild image.
+- **Không commit file .env thật lên repo**
+- JWT secret, DB password, Redis password phải đặt đủ mạnh khi deploy thật
+- Database sẽ tự động migrate khi khởi động ứng dụng
+- Code chỉ update khi rebuild image: `docker-compose up --build`
 
 ## Testing
-- Đã có unit test cho một số handler/service (thư mục `test/`).
-- Có thể mở rộng test coverage cho service, middleware, error case.
-- Hỗ trợ mock service cho test.
-
-## Migration database
-- Migration SQL nằm trong `internal/database/migrations/`.
-- Chạy migration thủ công hoặc tích hợp tool ngoài (hiện chưa có script migrate tự động).
+- Đã có unit test cho một số handler/service (thư mục `test/`)
+- Có thể mở rộng test coverage cho service, middleware, error case
 
 ## Troubleshooting
-- Nếu code thay đổi không áp dụng khi chạy Docker, hãy rebuild image: `docker-compose up --build`
-- Nếu mất kết nối DB/Redis, kiểm tra lại biến môi trường và container.
-- Swagger UI không hiển thị: kiểm tra đã generate docs và import `_ "api_techstore/docs"` trong main.go.
-- Xem log lỗi chi tiết trong terminal hoặc log file (nếu cấu hình).
+
+- **Code thay đổi không áp dụng**: Rebuild image: `docker-compose up --build`
+- **Mất kết nối DB/Redis**: Kiểm tra healthcheck và restart services
+- **Port conflict**: Kiểm tra port 8082, 5433, 6380 có đang được sử dụng không
 
 ## Đóng góp & phát triển
-- Mọi đóng góp, báo lỗi hoặc đề xuất vui lòng tạo issue hoặc pull request.
+- Mọi đóng góp, báo lỗi hoặc đề xuất vui lòng tạo issue hoặc pull request
 - Đọc kỹ các file hướng dẫn trong `guides/` để hiểu rõ về JWT, Redis, Validation, Error Handling, ...
-- Đảm bảo tuân thủ best practice về bảo mật, error handling, validate khi thêm mới API.
 
 ## Tài liệu liên quan
 - [Hướng dẫn JWT](guides/jwt_basic_implementation.md)
@@ -95,9 +105,6 @@ api_techstore/
 - [Hướng dẫn Middleware Validation](guides/validation_middleware_guide.md)
 - [Hướng dẫn Swagger Integration](guides/swagger_integration.md)
 - [Error Handling Guide](guides/error_handling_guide.md)
-- [Swagger API Spec](docs/swagger.yaml)
-
-> Các tài liệu tự viết nằm trong thư mục `guides/`. Thư mục `docs/` chứa file swagger được generate tự động.
 
 ## Đóng góp
-Mọi đóng góp, báo lỗi hoặc đề xuất vui lòng tạo issue hoặc pull request. 
+Mọi đóng góp, báo lỗi hoặc đề xuất vui lòng tạo issue hoặc pull request.
